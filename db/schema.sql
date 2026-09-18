@@ -1,0 +1,2 @@
+-- Poora Teeka - PostgreSQL 16 Schema
+-- Raw SQL DDL with constraints enforcing clinical and vial integrity rules.

@@ -1,0 +1,2 @@
+-- Poora Teeka - Synthetic Seed Data
+-- Only synthetic test patients, clinics, vials, and exposure records.

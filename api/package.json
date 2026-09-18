@@ -1,0 +1,14 @@
+{
+  "name": "poora-teeka-api",
+  "version": "0.1.0",
+  "description": "TypeScript Lambda handlers for Poora Teeka",
+  "private": true,
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "^22.13.9",
+    "typescript": "^5.8.2"
+  }
+}

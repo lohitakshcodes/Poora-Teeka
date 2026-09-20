@@ -102,9 +102,9 @@ async function main() {
     throw new Error(`GET /doses/missed failed with status ${res.status}`);
   }
   const missedApiData = await res.json();
-  console.log(`   Total Missed Doses in Queue: ${missedApiData.count}`);
+  console.log(`   Total Missed Doses in Queue: ${(missedApiData as any).count}`);
 
-  const apiDose = missedApiData.doses.find((d: any) => d.dose_id === targetDose.id);
+  const apiDose = (missedApiData as any).doses.find((d: any) => d.dose_id === targetDose.id);
   if (!apiDose) {
     throw new Error(`Target dose ${targetDose.id} not found in GET /doses/missed response`);
   }

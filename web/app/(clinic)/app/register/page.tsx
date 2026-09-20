@@ -206,6 +206,36 @@ export default function RegisterPage() {
     return `Dose ${dose.seq}`;
   };
 
+  const getDoseDayNumber = (seq: number, totalDoses: number) => {
+    const proto = PROTOCOLS.find((p) => p.id === createdCourse?.protocolId || p.dbId === createdCourse?.protocolId);
+    if (proto?.id === 'IN-HEPB-IM-v1') {
+      switch (seq) {
+        case 1: return 0;
+        case 2: return 30;
+        case 3: return 180;
+        default: return 0;
+      }
+    }
+    if (totalDoses === 4) {
+      switch (seq) {
+        case 1: return 0;
+        case 2: return 3;
+        case 3: return 7;
+        case 4: return 28;
+        default: return 0;
+      }
+    } else {
+      switch (seq) {
+        case 1: return 0;
+        case 2: return 3;
+        case 3: return 7;
+        case 4: return 14;
+        case 5: return 28;
+        default: return 0;
+      }
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Toast Confirmation (Motion Budget #4) */}
@@ -304,71 +334,60 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Generated Dose Calendar */}
-          <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-border/80 pb-3">
+          {/* Generated Dose Calendar as Vertical Timeline */}
+          <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-lg font-bold text-ink tracking-tight">
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight">
                   Generated Dose Schedule
                 </h3>
-                <p className="text-xs text-ink-muted">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Fixed clinical schedule ({createdCourse.doses.length} visits). Automated reminders queued via transactional outbox.
                 </p>
               </div>
-              <span className="text-xs font-mono bg-surfaceSunken px-2.5 py-1 rounded border border-border text-ink-muted font-medium">
+              <span className="text-xs font-mono bg-slate-100 px-3 py-1 rounded border border-slate-200 text-slate-600 font-medium">
                 Day 0: {formatFriendlyDate(createdCourse.day0)}
               </span>
             </div>
 
-            {/* Dose Cards List */}
-            <div className="space-y-2.5">
+            {/* Vertical Timeline per spec:
+                - Vertical line on the left (border-l-2 border-emerald-200)
+                - Each dose as a dot (w-3 h-3 rounded-full bg-emerald-500) connected to a card showing: "Dose N — Day X — [date]"
+                - Dose 1 dot is filled emerald, rest are outline only */}
+            <div className="relative pl-6 border-l-2 border-emerald-200 space-y-4 ml-3 my-4">
               {createdCourse.doses.map((dose) => {
-                const dayLabel = getDoseDayLabel(dose, createdCourse.doses.length);
-                const isDayZero = dose.seq === 1;
+                const dayNumber = getDoseDayNumber(dose.seq, createdCourse.doses.length);
+                const isDoseOne = dose.seq === 1;
+                const formattedDate = formatFriendlyDate(dose.dueDate);
 
                 return (
-                  <div
-                    key={dose.id}
-                    className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                      isDayZero
-                        ? 'bg-blue-50/50 border-statusDue/30 shadow-xs'
-                        : 'bg-surfaceSunken/60 border-border'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 font-mono ${
-                          isDayZero
-                            ? 'bg-statusDue text-white shadow-xs'
-                            : 'bg-white border border-border text-ink'
-                        }`}
-                      >
-                        {dose.seq}
-                      </div>
+                  <div key={dose.id} className="relative">
+                    {/* Dot on the vertical line */}
+                    <div
+                      className={`absolute -left-[31px] top-4 w-3 h-3 rounded-full ring-4 ring-slate-50 transition-colors ${
+                        isDoseOne
+                          ? 'bg-emerald-500'
+                          : 'border-2 border-emerald-500 bg-white'
+                      }`}
+                      aria-hidden="true"
+                    />
 
+                    {/* Card showing: "Dose N — Day X — [date]" */}
+                    <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-ink text-base">
-                            {dayLabel}
-                          </span>
-                          <span className="text-xs text-ink-muted">
-                            (Dose {dose.seq} of {dose.totalDoses})
-                          </span>
-                        </div>
-                        <p className="text-xs text-ink-muted font-medium">
-                          Scheduled Due Date:{' '}
-                          <strong className="text-ink font-semibold">
-                            {formatFriendlyDate(dose.dueDate)}
-                          </strong>
+                        <h4 className="font-semibold text-slate-900 text-base">
+                          Dose {dose.seq} — Day {dayNumber} — {formattedDate}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {isDoseOne
+                            ? 'Administer immediately at clinic counter'
+                            : 'Automated WhatsApp & Voice reminder queued'}
                         </p>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 self-end sm:self-center">
-                      <StatusBadge status={dose.status} />
-                      <span className="text-[11px] font-mono text-ink-muted hidden sm:inline">
-                        {isDayZero ? 'Administer now' : 'Auto-reminder queued'}
-                      </span>
+                      <div className="flex items-center gap-2 self-start sm:self-center">
+                        <StatusBadge status={dose.status} />
+                      </div>
                     </div>
                   </div>
                 );
@@ -376,8 +395,8 @@ export default function RegisterPage() {
             </div>
 
             {/* Reassurance note */}
-            <div className="p-4 rounded-xl bg-surfaceSunken border border-border/70 text-xs text-ink-muted flex items-center gap-2.5">
-              <svg className="w-5 h-5 text-brand shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 flex items-center gap-2.5">
+              <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-6-4.5h12m-12 9h12" />
               </svg>
               <span>
@@ -392,13 +411,13 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-brand text-white font-bold text-sm hover:bg-emerald-800 transition-colors shadow-sm cursor-pointer"
+              className="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-lg bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer inline-flex items-center justify-center"
             >
               + Register Another Patient
             </button>
             <Link
               href="/app"
-              className="w-full sm:w-auto text-center px-6 py-3 rounded-xl bg-surface border border-border text-ink font-semibold text-sm hover:bg-surfaceSunken transition-colors"
+              className="w-full sm:w-auto min-h-[48px] text-center px-6 py-3 rounded-lg bg-white border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors shadow-sm inline-flex items-center justify-center"
             >
               View Today&apos;s Clinic Queue →
             </Link>
@@ -679,9 +698,9 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={!isFormValid || isSubmitting}
-              className={`px-8 py-3.5 rounded-xl text-base font-bold transition-all shadow-sm flex items-center justify-center gap-2.5 cursor-pointer shrink-0 ${
+              className={`min-h-[48px] px-8 py-3 rounded-lg text-base font-semibold transition-all shadow-sm flex items-center justify-center gap-2.5 cursor-pointer shrink-0 ${
                 isFormValid && !isSubmitting
-                  ? 'bg-brand text-white hover:bg-emerald-800 active:scale-[0.98]'
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98]'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >

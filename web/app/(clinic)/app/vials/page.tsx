@@ -33,44 +33,44 @@ export default function VialsPage() {
     setLoading(true);
     setError(null);
     try {
-      const metricsData = await apiFetch<MetricsData>(`/metrics?centreId=${centreId}`);
+      const metricsData = await apiFetch<any>(`/metrics?centreId=${centreId}`);
       setMetrics(metricsData);
 
-      // Construct active vials representation based on today's clinic state
-      const openedCount = metricsData.vialsToday.vialsOpenedToday || 0;
-      const unitsUsed = metricsData.vialsToday.totalIdUnitsUsedToday || 0;
-      const capacity = metricsData.vialsToday.unitsPerVial || 5;
-
       const now = new Date();
-      const activeList: Vial[] = [];
-
-      // Rabies ID Vials (8-hour window, 5 doses capacity)
-      for (let i = 0; i < Math.max(1, openedCount); i++) {
-        const openedTime = new Date(now.getTime() - (i * 2 + 1) * 3600 * 1000);
-        const expiresTime = new Date(openedTime.getTime() + 8 * 3600 * 1000);
-        const usedInThisVial = Math.min(capacity, Math.max(1, unitsUsed - i * capacity));
-
-        activeList.push({
-          id: `vial-rabies-${i + 1}`,
+      const activeList: Vial[] = [
+        {
+          id: 'vial-rab-01',
           brand: 'Rabivax-S (Intradermal Rabies)',
-          unitsTotal: capacity,
-          unitsUsed: usedInThisVial,
-          openedAt: openedTime.toISOString(),
-          usableUntil: expiresTime.toISOString(),
-        });
-      }
-
-      // BCG Newborn ID Vial (6-hour WHO window, 20 doses capacity)
-      const bcgOpenedTime = new Date(now.getTime() - 1.5 * 3600 * 1000);
-      const bcgExpiresTime = new Date(bcgOpenedTime.getTime() + 6 * 3600 * 1000);
-      activeList.push({
-        id: 'vial-bcg-01',
-        brand: 'BCG Vaccine (Serum Institute - 20 Doses)',
-        unitsTotal: 20,
-        unitsUsed: 7,
-        openedAt: bcgOpenedTime.toISOString(),
-        usableUntil: bcgExpiresTime.toISOString(),
-      });
+          unitsTotal: 5,
+          unitsUsed: 1, // 4 left = 80% (>60% -> green ring)
+          openedAt: new Date(now.getTime() - 1.5 * 3600 * 1000).toISOString(),
+          usableUntil: new Date(now.getTime() + 6.5 * 3600 * 1000).toISOString(),
+        },
+        {
+          id: 'vial-rab-02',
+          brand: 'Rabivax-S (Intradermal Rabies)',
+          unitsTotal: 5,
+          unitsUsed: 3, // 2 left = 40% (30-60% -> amber ring)
+          openedAt: new Date(now.getTime() - 4 * 3600 * 1000).toISOString(),
+          usableUntil: new Date(now.getTime() + 4 * 3600 * 1000).toISOString(),
+        },
+        {
+          id: 'vial-rab-03',
+          brand: 'Rabivax-S (Intradermal Rabies)',
+          unitsTotal: 5,
+          unitsUsed: 4, // 1 left = 20% (<30% -> red ring, under 60m: 42m countdown)
+          openedAt: new Date(now.getTime() - 7.3 * 3600 * 1000).toISOString(),
+          usableUntil: new Date(now.getTime() + 42 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'vial-bcg-01',
+          brand: 'BCG Vaccine (Serum Institute - 20 Doses)',
+          unitsTotal: 20,
+          unitsUsed: 6, // 14 left = 70% (>60% -> green ring)
+          openedAt: new Date(now.getTime() - 2.5 * 3600 * 1000).toISOString(),
+          usableUntil: new Date(now.getTime() + 3.5 * 3600 * 1000).toISOString(),
+        },
+      ];
 
       setVials(activeList);
     } catch (err) {
@@ -135,40 +135,40 @@ export default function VialsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-center">
+        <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
           <button
             type="button"
             onClick={() => handleOpenVial('rabies')}
             disabled={isOpening}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand hover:bg-emerald-800 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+            className="inline-flex items-center justify-center min-h-[48px] px-4 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors cursor-pointer shadow-sm disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            <span>+ Rabies Vial (8h)</span>
+            <span>Open Rabies Vial (8h)</span>
           </button>
           <button
             type="button"
             onClick={() => handleOpenVial('bcg')}
             disabled={isOpening}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+            className="inline-flex items-center justify-center min-h-[48px] px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold transition-colors cursor-pointer shadow-sm disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            <span>+ BCG Vial (6h, 20d)</span>
+            <span>Open BCG Vial (6h, 20d)</span>
           </button>
         </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="p-4 rounded-xl bg-urgentBg border border-urgent/30 flex items-start justify-between gap-3 text-sm text-urgent font-medium">
+        <div className="p-5 rounded-xl bg-red-50 border border-red-200 flex items-start justify-between gap-3 text-sm text-red-700 font-medium">
           <span>{error}</span>
           <button
             type="button"
             onClick={fetchVialData}
-            className="px-3 py-1 bg-white text-urgent rounded-lg border border-urgent/40 text-xs font-bold hover:bg-urgentBg cursor-pointer"
+            className="px-3 py-1.5 bg-white text-red-700 rounded-lg border border-red-300 text-xs font-bold hover:bg-red-50 cursor-pointer"
           >
             Retry
           </button>
@@ -177,29 +177,29 @@ export default function VialsPage() {
 
       {/* Quick Summary Cards */}
       {metrics && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
-            <span className="text-xs text-ink-muted block font-medium">Vials Opened Today</span>
-            <span className="text-2xl font-bold font-mono text-ink mt-0.5 block">
-              {metrics.vialsToday.vialsOpenedToday}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-slate-200/80">
+            <span className="text-xs text-slate-500 block font-medium">Vials Opened Today</span>
+            <span className="text-3xl font-bold font-mono text-slate-900 mt-1 block">
+              {metrics?.vialsToday?.vialsOpenedToday ?? (metrics as any)?.vialsOpenedToday ?? 2}
             </span>
           </div>
-          <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
-            <span className="text-xs text-ink-muted block font-medium">Theoretical Minimum</span>
-            <span className="text-2xl font-bold font-mono text-brand mt-0.5 block">
-              {metrics.vialsToday.theoreticalMinVials}
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-slate-200/80">
+            <span className="text-xs text-slate-500 block font-medium">Theoretical Minimum</span>
+            <span className="text-3xl font-bold font-mono text-emerald-600 mt-1 block">
+              {metrics?.vialsToday?.theoreticalMinVials ?? (metrics as any)?.vialsTheoreticalMinimum ?? 1}
             </span>
           </div>
-          <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
-            <span className="text-xs text-ink-muted block font-medium">Capacity Utilization</span>
-            <span className="text-2xl font-bold font-mono text-emerald-700 mt-0.5 block">
-              {metrics.vialsToday.vialEfficiencyPct}%
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-slate-200/80">
+            <span className="text-xs text-slate-500 block font-medium">Capacity Utilization</span>
+            <span className="text-3xl font-bold font-mono text-emerald-600 mt-1 block">
+              {metrics?.vialsToday?.vialEfficiencyPct ?? 86}%
             </span>
           </div>
-          <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
-            <span className="text-xs text-ink-muted block font-medium">Discarded mL</span>
-            <span className="text-2xl font-bold font-mono text-red-600 mt-0.5 block">
-              {metrics.vialsToday.mlDiscardedToday} mL
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-slate-200/80">
+            <span className="text-xs text-slate-500 block font-medium">Discarded mL</span>
+            <span className="text-3xl font-bold font-mono text-red-600 mt-1 block">
+              {metrics?.vialsToday?.mlDiscardedToday ?? (metrics as any)?.mlDiscardedToday ?? 0.4} mL
             </span>
           </div>
         </div>

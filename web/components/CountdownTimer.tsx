@@ -11,70 +11,54 @@ interface CountdownTimerProps {
 export function CountdownTimer({
   usableUntil,
   className = '',
-  showLabel = false,
+  showLabel = true,
 }: CountdownTimerProps) {
   const targetMs = new Date(usableUntil).getTime();
   const [remainingMs, setRemainingMs] = useState<number>(() => targetMs - Date.now());
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Initial sync
+    setMounted(true);
     setRemainingMs(targetMs - Date.now());
 
     const interval = setInterval(() => {
-      const diff = targetMs - Date.now();
-      setRemainingMs(diff);
-      if (diff <= 0) {
-        clearInterval(interval);
-      }
+      setRemainingMs(targetMs - Date.now());
     }, 1000);
 
     return () => clearInterval(interval);
   }, [targetMs]);
 
   const isExpired = remainingMs <= 0;
-  // Under 60 minutes: urgent red visual state (Motion Budget #1)
-  const isUrgent = !isExpired && remainingMs < 60 * 60 * 1000;
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+  // Under 60 minutes: text-red-600 font-bold
+  const isUnder60 = !isExpired && totalSeconds < 3600;
 
-  let timeString = '';
-  if (isExpired) {
-    timeString = 'EXPIRED';
-  } else {
-    const totalSeconds = Math.floor(remainingMs / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
-    if (hours > 0) {
-      timeString = `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
-    } else {
-      timeString = `${minutes}m ${String(seconds).padStart(2, '0')}s`;
-    }
-  }
-
-  const badgeStyle = isExpired
-    ? 'bg-urgentBg text-urgent border-urgent/40 font-bold'
-    : isUrgent
-    ? 'bg-urgentBg text-urgent border-urgent/40 font-semibold animate-pulse'
-    : 'bg-surfaceSunken text-ink-muted border-border font-medium';
+  const timeString = isExpired
+    ? '00:00:00'
+    : `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   return (
-    <div className={`inline-flex items-center gap-1.5 font-mono text-sm px-2.5 py-1 rounded border ${badgeStyle} ${className}`}>
+    <div className={`flex flex-col items-center ${className}`} suppressHydrationWarning>
+      <span
+        className={`font-mono text-2xl tracking-wide tabular-nums ${
+          isUnder60
+            ? 'text-red-600 font-bold animate-pulse'
+            : isExpired
+            ? 'text-red-600 font-bold'
+            : 'text-slate-800 font-semibold'
+        }`}
+      >
+        {timeString}
+      </span>
       {showLabel && (
-        <span className="text-xs uppercase font-sans tracking-wide text-ink-muted mr-1">
-          {isExpired ? 'Status:' : 'Expires in:'}
+        <span className="text-xs text-slate-500 mt-1">
+          {isExpired ? 'Cold chain expired' : isUnder60 ? 'Expires in under 1 hour' : 'Cold chain window remaining'}
         </span>
       )}
-      <svg
-        className={`w-3.5 h-3.5 ${isUrgent || isExpired ? 'text-urgent' : 'text-ink-muted'}`}
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth="2"
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span>{timeString}</span>
     </div>
   );
 }

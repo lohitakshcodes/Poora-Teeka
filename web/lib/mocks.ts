@@ -339,7 +339,7 @@ export function handleMockRequest<T>(path: string, options?: RequestInit): T {
 
   // 6. GET /metrics?centreId=
   if (method === 'GET' && pathname === '/metrics') {
-    const response: MetricsResponse = {
+    const response = {
       funnel: [
         { seq: 1, given: 54, scheduled: 56 },
         { seq: 2, given: 46, scheduled: 54 },
@@ -350,8 +350,18 @@ export function handleMockRequest<T>(path: string, options?: RequestInit): T {
       vialsTheoreticalMinimum: 9, // <= vialsOpenedToday
       mlDiscardedToday: 1.8,
       reminderDeliveryRate: 0.94, // between 0 and 1
+      vialsToday: {
+        vialsOpenedToday: 13,
+        totalIdUnitsUsedToday: 45,
+        unitsPerVial: 5,
+        theoreticalMinVials: 9,
+        vialEfficiencyPct: 86,
+        unitsDiscardedToday: 4,
+        mlDiscardedToday: 1.8,
+        comparisonText: 'Vials opened: 13 vs theoretical minimum: 9',
+      },
     };
-    return response as T;
+    return response as unknown as T;
   }
 
   // 7. GET /plan/tomorrow?centreId=

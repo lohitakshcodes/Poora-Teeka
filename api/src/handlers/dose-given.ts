@@ -78,7 +78,8 @@ export const handler = async (
            d.version,
            c.centre_id,
            c.protocol_id,
-           p.units_per_visit
+           p.units_per_visit,
+           p.vaccine_id
          FROM doses d
          JOIN courses c ON d.course_id = c.id
          JOIN protocols p ON c.protocol_id = p.id
@@ -109,7 +110,7 @@ export const handler = async (
       const centreId: string = dose.centre_id;
 
       // 2. Reserve units from an existing live vial using reserve_units()
-      // (reserve_units uses FOR UPDATE SKIP LOCKED to prevent concurrency contention)
+      // (reserve_units derives vaccine_id and uses FOR UPDATE SKIP LOCKED to prevent concurrency contention)
       let reserveRes = await client.query(
         `SELECT reserve_units($1, $2, $3) AS vial_id`,
         [doseId, centreId, unitsToReserve]
@@ -118,25 +119,26 @@ export const handler = async (
       let allocatedVialId = reserveRes.rows[0].vial_id;
 
       // If NULL, no open vial has enough remaining capacity:
-      // Coordinate vial opening by locking vial_lots FOR UPDATE (serialized per lot)
+      // Coordinate vial opening by locking vial_lots FOR UPDATE (serialized per lot, filtered strictly by derived vaccine_id)
       if (!allocatedVialId) {
         const lotRes = await client.query(
           `SELECT id, brand, units_per_vial, remaining_unopened
            FROM vial_lots
            WHERE centre_id = $1
+             AND vaccine_id = $2
              AND remaining_unopened > 0
-             AND units_per_vial >= $2
+             AND units_per_vial >= $3
              AND expiry >= CURRENT_DATE
            ORDER BY expiry ASC
            FOR UPDATE
            LIMIT 1`,
-          [centreId, unitsToReserve]
+          [centreId, dose.vaccine_id, unitsToReserve]
         );
 
         if (lotRes.rows.length === 0) {
           throw {
             statusCode: 409,
-            message: `No live open vial has sufficient capacity (${unitsToReserve} units required) and no unopened vial lots are available at centre.`,
+            message: `No live open vial has sufficient capacity (${unitsToReserve} units required) and no unopened ${dose.vaccine_id} vial lots are available at centre.`,
           };
         }
 

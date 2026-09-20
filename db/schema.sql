@@ -4,6 +4,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE protocols (
   id              text PRIMARY KEY,
   label           text        NOT NULL,
+  vaccine_id      text        NOT NULL,
   route           text        NOT NULL CHECK (route IN ('ID','IM')),
   visit_offsets   int[]       NOT NULL,
   units_per_visit int         NOT NULL CHECK (units_per_visit > 0),
@@ -75,6 +76,7 @@ CREATE INDEX doses_course_idx ON doses (course_id);
 CREATE TABLE vial_lots (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   centre_id          uuid NOT NULL REFERENCES centres(id),
+  vaccine_id         text NOT NULL DEFAULT 'RABIES',
   protocol_id        text REFERENCES protocols(id),
   brand              text NOT NULL,
   ml                 numeric(4,2) NOT NULL CHECK (ml > 0),
@@ -157,14 +159,28 @@ RETURNS uuid
 LANGUAGE plpgsql AS $$
 DECLARE
   v_vial uuid;
+  v_vaccine_id text;
 BEGIN
-  SELECT id INTO v_vial
-  FROM open_vials
-  WHERE centre_id = p_centre
-    AND usable @> now()
-    AND units_total - units_used >= p_units
-  ORDER BY upper(usable) ASC
-  FOR UPDATE SKIP LOCKED
+  -- Derive required vaccine_id directly from the dose's course protocol
+  SELECT p.vaccine_id INTO v_vaccine_id
+  FROM doses d
+  JOIN courses c ON d.course_id = c.id
+  JOIN protocols p ON c.protocol_id = p.id
+  WHERE d.id = p_dose;
+
+  IF v_vaccine_id IS NULL THEN
+    RAISE EXCEPTION 'Could not derive vaccine_id for dose %', p_dose;
+  END IF;
+
+  SELECT ov.id INTO v_vial
+  FROM open_vials ov
+  JOIN vial_lots vl ON ov.lot_id = vl.id
+  WHERE ov.centre_id = p_centre
+    AND vl.vaccine_id = v_vaccine_id
+    AND ov.usable @> now()
+    AND ov.units_total - ov.units_used >= p_units
+  ORDER BY upper(ov.usable) ASC
+  FOR UPDATE OF ov SKIP LOCKED
   LIMIT 1;
 
   IF v_vial IS NULL THEN

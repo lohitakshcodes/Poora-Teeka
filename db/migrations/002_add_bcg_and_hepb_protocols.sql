@@ -11,10 +11,11 @@ ALTER TABLE vial_lots
   ADD COLUMN IF NOT EXISTS open_vial_minutes int;
 
 -- 3. Insert BCG protocol: single dose, ID route, 1 unit (0.05 ml), 6-hour open-vial window (360 min)
-INSERT INTO protocols (id, label, route, visit_offsets, units_per_visit, open_vial_minutes, source, approved_by)
+INSERT INTO protocols (id, label, vaccine_id, route, visit_offsets, units_per_visit, open_vial_minutes, source, approved_by)
 VALUES (
   'IN-BCG-v1',
   'BCG — single dose (newborn)',
+  'BCG',
   'ID',
   '{0}',
   1,
@@ -24,16 +25,18 @@ VALUES (
 )
 ON CONFLICT (id) DO UPDATE SET
   label = EXCLUDED.label,
+  vaccine_id = COALESCE(EXCLUDED.vaccine_id, 'BCG'),
   route = EXCLUDED.route,
   visit_offsets = EXCLUDED.visit_offsets,
   units_per_visit = EXCLUDED.units_per_visit,
   open_vial_minutes = EXCLUDED.open_vial_minutes;
 
 -- 4. Insert Hepatitis B protocol: 3 doses (Days 0, 30, 180), IM route, 1 unit (1 full vial), 28-day window (40320 min)
-INSERT INTO protocols (id, label, route, visit_offsets, units_per_visit, open_vial_minutes, source, approved_by)
+INSERT INTO protocols (id, label, vaccine_id, route, visit_offsets, units_per_visit, open_vial_minutes, source, approved_by)
 VALUES (
   'IN-HEPB-IM-v1',
   'Hepatitis B — 3 doses',
+  'HEPB',
   'IM',
   '{0,30,180}',
   1,
@@ -43,6 +46,7 @@ VALUES (
 )
 ON CONFLICT (id) DO UPDATE SET
   label = EXCLUDED.label,
+  vaccine_id = COALESCE(EXCLUDED.vaccine_id, 'HEPB'),
   route = EXCLUDED.route,
   visit_offsets = EXCLUDED.visit_offsets,
   units_per_visit = EXCLUDED.units_per_visit,

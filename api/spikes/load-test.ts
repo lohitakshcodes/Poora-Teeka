@@ -57,8 +57,8 @@ async function runLoadTest() {
     
     // Create dedicated lot with ample stock for rollover
     const lotRes = await query(
-      `INSERT INTO vial_lots (centre_id, brand, ml, units_per_vial, expiry, received, remaining_unopened)
-       VALUES ($1, 'Rabivax-S Concurrency Lot', 1.00, 10, '2028-12-31', 20, 20)
+      `INSERT INTO vial_lots (centre_id, vaccine_id, brand, ml, units_per_vial, expiry, received, remaining_unopened)
+       VALUES ($1, 'RABIES', 'Rabivax-S Concurrency Lot', 1.00, 10, '2028-12-31', 20, 20)
        RETURNING id, brand, units_per_vial`,
       [CENTRE_ID]
     );

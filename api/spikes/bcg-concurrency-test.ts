@@ -98,8 +98,8 @@ async function runBcgConcurrencySpike() {
   // 4. Create a synthetic BCG vial lot sized for 20 infant doses per 1.0 mL vial (1 unit each)
   const lotSerialPrefix = `TESTLOT-${Date.now().toString(36).toUpperCase()}`;
   const lotInsertRes = await query(
-    `INSERT INTO vial_lots (centre_id, protocol_id, brand, ml, units_per_vial, open_vial_minutes, expiry, received, remaining_unopened)
-     VALUES ($1, $2, $3, 1.0, 20, 360, '2028-12-31', 10, 10)
+    `INSERT INTO vial_lots (centre_id, vaccine_id, protocol_id, brand, ml, units_per_vial, open_vial_minutes, expiry, received, remaining_unopened)
+     VALUES ($1, 'BCG', $2, $3, 1.0, 20, 360, '2028-12-31', 10, 10)
      RETURNING id, brand, units_per_vial, open_vial_minutes, remaining_unopened`,
     [centre.id, protocol.id, `BCG-${lotSerialPrefix}`]
   );

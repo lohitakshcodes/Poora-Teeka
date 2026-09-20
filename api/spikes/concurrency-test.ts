@@ -95,8 +95,8 @@ async function runConcurrencySpike() {
   // 5 visits * 2 units/visit = 10 units per vial
   const lotSerialPrefix = `TESTLOT-${Date.now().toString(36).toUpperCase()}`;
   const lotInsertRes = await query(
-    `INSERT INTO vial_lots (centre_id, brand, ml, units_per_vial, expiry, received, remaining_unopened)
-     VALUES ($1, $2, 1.0, 10, '2028-12-31', 10, 10)
+    `INSERT INTO vial_lots (centre_id, vaccine_id, brand, ml, units_per_vial, expiry, received, remaining_unopened)
+     VALUES ($1, 'RABIES', $2, 1.0, 10, '2028-12-31', 10, 10)
      RETURNING id, brand, units_per_vial, remaining_unopened`,
     [centre.id, `Rabivax-${lotSerialPrefix}`]
   );

@@ -12,6 +12,7 @@ import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+import * as amplify from 'aws-cdk-lib/aws-amplify';
 import { Construct } from 'constructs';
 
 export class PooraTeekaStack extends cdk.Stack {
@@ -659,6 +660,73 @@ export class PooraTeekaStack extends cdk.Stack {
       value: `https://${this.region}.console.aws.amazon.com/cloudwatch/home?region=${this.region}#dashboards/dashboard/PooraTeeka-Operations`,
       description: 'Poora Teeka Live CloudWatch Operations Dashboard URL',
     });
+
+    // 21. AWS Amplify Hosting for Next.js (web/)
+    const amplifyRole = new iam.Role(this, 'AmplifyHostingRole', {
+      assumedBy: new iam.ServicePrincipal('amplify.amazonaws.com'),
+      description: 'IAM role for AWS Amplify Hosting Compute and SSR deployments',
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess-Amplify'),
+      ],
+    });
+
+    const gitHubToken = process.env.GITHUB_TOKEN;
+
+    const amplifyApp = new amplify.CfnApp(this, 'AmplifyApp', {
+      name: 'poora-teeka-web',
+      repository: 'https://github.com/lohitakshcodes/Poora-Teeka',
+      accessToken: gitHubToken,
+      iamServiceRole: amplifyRole.roleArn,
+      platform: 'WEB_COMPUTE',
+      environmentVariables: [
+        {
+          name: 'NEXT_PUBLIC_API_URL',
+          value: httpApi.url!,
+        },
+        {
+          name: 'NODE_VERSION',
+          value: '22',
+        },
+        {
+          name: 'AMPLIFY_MONOREPO_APP_ROOT',
+          value: 'web',
+        },
+      ],
+      buildSpec: `version: 1
+applications:
+  - appRoot: web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci --cache .npm --prefer-offline
+        build:
+          commands:
+            - env | grep -e NEXT_PUBLIC_ >> .env.production
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - .next/cache/**/*
+          - .npm/**/*`,
+    });
+
+    new amplify.CfnBranch(this, 'AmplifyMainBranch', {
+      appId: amplifyApp.attrAppId,
+      branchName: 'main',
+      stage: 'PRODUCTION',
+      enableAutoBuild: true,
+      framework: 'Next.js - SSR',
+    });
+
+    new cdk.CfnOutput(this, 'AmplifyAppUrl', {
+      value: `https://main.${amplifyApp.attrDefaultDomain}`,
+      description: 'AWS Amplify Hosting URL for Poora Teeka Web',
+    });
   }
 }
+
 

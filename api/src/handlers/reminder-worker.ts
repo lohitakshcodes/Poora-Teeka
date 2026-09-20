@@ -412,7 +412,7 @@ export const handler = async (event: any): Promise<any> => {
 
       // 3. Send separate follow-up message with the live patient status portal link
       if (row.status_token) {
-        const portalBaseUrl = process.env.APP_URL || 'https://main.d18080fgy20g6l.amplifyapp.com';
+        const portalBaseUrl = process.env.APP_URL || 'https://main.d26dxmzrzyc9st.amplifyapp.com';
         const portalUrl = `${portalBaseUrl.replace(/\/$/, '')}/s/${row.status_token}`;
         const portalRes = await fetch(apiUrl, {
           method: 'POST',

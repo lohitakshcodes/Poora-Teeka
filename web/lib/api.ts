@@ -29,10 +29,16 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     ...(options?.headers as Record<string, string>),
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (networkErr) {
+    console.warn(`[apiFetch] Network request to ${url} failed; falling back to mock:`, networkErr);
+    return handleMockRequest<T>(path, options);
+  }
 
   if (!response.ok) {
     let errorData: unknown;

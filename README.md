@@ -310,7 +310,7 @@ The one known bottleneck at 10x load is the sequential Jev enrichment loop. Fix:
 | | Role |
 |-|------|
 | **Lohitaksh Bisen** | Backend, AWS infrastructure, system design |
-| **[Teammate name]** | Frontend, dashboard, patient portal |
+| **Tanvi Hardas** | Frontend, dashboard, patient portal |
 
 *MIT WPU, Pune · Third year · Graduating 2028*
 

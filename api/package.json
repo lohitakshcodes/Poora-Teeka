@@ -4,11 +4,30 @@
   "description": "TypeScript Lambda handlers for Poora Teeka",
   "private": true,
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "spike:whatsapp": "tsx spikes/whatsapp-test.ts",
+    "spike:polly": "tsx spikes/polly-test.ts",
+    "spike:concurrency": "tsx spikes/concurrency-test.ts",
+    "db:migrate": "../db/migrate.sh ../db/schema.sql",
+    "db:seed": "../db/migrate.sh ../db/seed.sql"
   },
   "devDependencies": {
+    "@aws-sdk/client-lambda": "^3.1136.0",
     "@types/aws-lambda": "^8.10.147",
     "@types/node": "^22.13.9",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.1136.0",
+    "@aws-sdk/client-polly": "^3.1136.0",
+    "@aws-sdk/client-s3": "^3.1136.0",
+    "@aws-sdk/client-scheduler": "^3.1136.0",
+    "@aws-sdk/client-secrets-manager": "^3.1136.0",
+    "@aws-sdk/client-sqs": "^3.1136.0",
+    "@aws-sdk/s3-request-presigner": "^3.1136.0",
+    "@typesafe-ai/sdk": "^0.6.0",
+    "pg": "^8.23.0"
   }
 }

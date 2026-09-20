@@ -5,6 +5,7 @@
 
 <p align="center">
   <a href="https://o025clnwai.execute-api.ap-south-1.amazonaws.com"><img alt="Live API" src="https://img.shields.io/badge/API-Live%20on%20AWS-0F6B5C?style=flat-square"></a>
+  <a href="https://github.com/lohitakshcodes/Poora-Teeka/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/lohitakshcodes/Poora-Teeka/actions/workflows/ci.yml/badge.svg"></a>
   <a href="#see-it-work"><img alt="3-minute demo" src="https://img.shields.io/badge/demo-3%20min-1D4E89?style=flat-square"></a>
   <img alt="Built on AWS" src="https://img.shields.io/badge/AWS-Lambda%20%C2%B7%20RDS%20%C2%B7%20EventBridge%20%C2%B7%20Polly-FF9900?style=flat-square&logo=amazonwebservices&logoColor=white">
   <img alt="Postgres 16" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white">

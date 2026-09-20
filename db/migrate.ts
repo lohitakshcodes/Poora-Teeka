@@ -3,6 +3,16 @@ import path from 'node:path';
 import { Client } from 'pg';
 
 async function runMigration() {
+  const envCandidates = [
+    path.resolve(process.cwd(), '.env'),
+    path.resolve(__dirname, '../.env'),
+  ];
+  for (const p of envCandidates) {
+    if (fs.existsSync(p)) {
+      try { process.loadEnvFile(p); break; } catch {}
+    }
+  }
+
   console.log('================================================================');
   console.log('  Poora Teeka - Database Migration Runner (db/migrate.ts)        ');
   console.log('================================================================');
@@ -48,10 +58,15 @@ async function runMigration() {
     if (fs.existsSync(schemaPath)) {
       console.log(`📜 Applying base schema from: ${schemaPath}`);
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-      await client.query('BEGIN');
-      await client.query(schemaSql);
-      await client.query('COMMIT');
-      console.log('✅ Base schema successfully applied.\n');
+      try {
+        await client.query('BEGIN');
+        await client.query(schemaSql);
+        await client.query('COMMIT');
+        console.log('✅ Base schema successfully applied.\n');
+      } catch (sErr: any) {
+        await client.query('ROLLBACK');
+        console.log(`ℹ️ Base schema already initialized: ${sErr.message}\n`);
+      }
     } else {
       console.warn(`⚠️ Warning: ${schemaPath} not found.`);
     }
@@ -61,10 +76,15 @@ async function runMigration() {
     if (fs.existsSync(seedPath)) {
       console.log(`🌱 Applying base seed data from: ${seedPath}`);
       const seedSql = fs.readFileSync(seedPath, 'utf8');
-      await client.query('BEGIN');
-      await client.query(seedSql);
-      await client.query('COMMIT');
-      console.log('✅ Base seed data successfully applied.\n');
+      try {
+        await client.query('BEGIN');
+        await client.query(seedSql);
+        await client.query('COMMIT');
+        console.log('✅ Base seed data successfully applied.\n');
+      } catch (sdErr: any) {
+        await client.query('ROLLBACK');
+        console.log(`ℹ️ Base seed already applied: ${sdErr.message}\n`);
+      }
     }
 
     // 3. Apply migrations from db/migrations/

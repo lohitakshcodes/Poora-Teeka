@@ -1,7 +1,7 @@
 -- Poora Teeka - Synthetic Seed Data
 -- Initial centre and WHO-approved PEP protocols
 
--- 1. Primary anti-rabies clinic centre
+-- 1. Anti-rabies clinics
 INSERT INTO centres (id, name, city, open_vial_minutes, day_start, day_end)
 VALUES (
   'a0000000-0000-0000-0000-000000000001',
@@ -10,6 +10,17 @@ VALUES (
   480,
   '09:00',
   '17:00'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO centres (id, name, city, open_vial_minutes, day_start, day_end)
+VALUES (
+  '44444444-4444-4444-8444-444444444444',
+  'Sassoon General Hospital ARV Clinic',
+  'Pune',
+  480,
+  '08:30',
+  '16:30'
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -36,6 +47,34 @@ VALUES (
   '{0,3,7,14,28}',
   1,
   'WHO Rabies Guidelines 2018 / National Rabies Control Program (NRCP)',
+  'Ministry of Health and Family Welfare (MoHFW)'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- 3. BCG: Single-dose intradermal for newborns (1 unit per visit, 6-hour open vial window)
+INSERT INTO protocols (id, label, route, visit_offsets, units_per_visit, open_vial_minutes, source, approved_by)
+VALUES (
+  'IN-BCG-v1',
+  'BCG — single dose (newborn)',
+  'ID',
+  '{0}',
+  1,
+  360,
+  'WHO Expanded Programme on Immunization (EPI) / National Immunization Schedule (NIS) India',
+  'Ministry of Health and Family Welfare (MoHFW)'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- 4. Hepatitis B: 3-dose intramuscular series (0, 30, 180 days, 1 unit per visit, 28-day open vial window)
+INSERT INTO protocols (id, label, route, visit_offsets, units_per_visit, open_vial_minutes, source, approved_by)
+VALUES (
+  'IN-HEPB-IM-v1',
+  'Hepatitis B — 3 doses',
+  'IM',
+  '{0,30,180}',
+  1,
+  40320,
+  'WHO Position Paper on Hepatitis B / National Immunization Schedule (NIS) India',
   'Ministry of Health and Family Welfare (MoHFW)'
 )
 ON CONFLICT (id) DO NOTHING;

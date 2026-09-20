@@ -7,6 +7,7 @@ CREATE TABLE protocols (
   route           text        NOT NULL CHECK (route IN ('ID','IM')),
   visit_offsets   int[]       NOT NULL,
   units_per_visit int         NOT NULL CHECK (units_per_visit > 0),
+  open_vial_minutes int       NOT NULL DEFAULT 480,
   source          text        NOT NULL,
   approved_by     text        NOT NULL,
   valid_period    tstzrange   NOT NULL DEFAULT tstzrange(now(), NULL),
@@ -74,9 +75,11 @@ CREATE INDEX doses_course_idx ON doses (course_id);
 CREATE TABLE vial_lots (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   centre_id          uuid NOT NULL REFERENCES centres(id),
+  protocol_id        text REFERENCES protocols(id),
   brand              text NOT NULL,
   ml                 numeric(4,2) NOT NULL CHECK (ml > 0),
   units_per_vial     int  NOT NULL CHECK (units_per_vial > 0),
+  open_vial_minutes  int,
   expiry             date NOT NULL,
   received           int  NOT NULL CHECK (received >= 0),
   remaining_unopened int  NOT NULL CHECK (remaining_unopened >= 0),
@@ -186,15 +189,25 @@ DECLARE
   v_units   int;
   v_minutes int;
 BEGIN
-  SELECT units_per_vial INTO v_units FROM vial_lots
-   WHERE id = p_lot AND remaining_unopened > 0
-   FOR UPDATE;
+  SELECT vl.units_per_vial,
+         COALESCE(vl.open_vial_minutes, p.open_vial_minutes)
+    INTO v_units, v_minutes
+    FROM vial_lots vl
+    LEFT JOIN protocols p ON vl.protocol_id = p.id
+   WHERE vl.id = p_lot AND vl.remaining_unopened > 0
+   FOR UPDATE OF vl;
 
   IF v_units IS NULL THEN
     RAISE EXCEPTION 'lot % has no unopened vials', p_lot;
   END IF;
 
-  SELECT open_vial_minutes INTO v_minutes FROM centres WHERE id = p_centre;
+  IF v_minutes IS NULL THEN
+    SELECT open_vial_minutes INTO v_minutes FROM centres WHERE id = p_centre;
+  END IF;
+
+  IF v_minutes IS NULL THEN
+    v_minutes := 480;
+  END IF;
 
   UPDATE vial_lots SET remaining_unopened = remaining_unopened - 1 WHERE id = p_lot;
 

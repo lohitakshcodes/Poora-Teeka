@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/api';
 import { MetricNumber } from '@/components/MetricNumber';
 import { FunnelBar } from '@/components/FunnelBar';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { useCentre } from '@/lib/centreContext';
 
 interface FunnelItem {
   seq: number;
@@ -20,27 +21,25 @@ interface FunnelItem {
 
 interface MissedDoseItem {
   dose_id: string;
-  course_id: string;
-  route: string;
   seq: number;
-  due_date: string;
-  status: string;
-  escalation_level?: 'routine' | 'priority' | 'critical' | string;
-  dropout_risk?: number;
-  patient_id: string;
   patient_name: string;
   patient_phone: string;
-  patient_language: string;
+  escalation_level?: 'critical' | 'priority' | 'routine' | string;
+  dropout_risk?: number;
 }
 
 interface MetricsData {
-  centre: {
+  centre?: {
     id: string;
     name: string;
     city: string;
   };
-  date: string;
+  summary?: {
+    centreId: string;
+    generatedAt: string;
+  };
   completionFunnel: {
+    overallCompletionRatePct?: number;
     sequences: FunnelItem[];
     totalCoursesTracked: number;
   };
@@ -66,8 +65,7 @@ interface MetricsData {
 }
 
 export default function DashboardPage() {
-  const CENTRE_ID =
-    process.env.NEXT_PUBLIC_CENTRE_ID || 'a0000000-0000-0000-0000-000000000001';
+  const { centreId, activeCentre } = useCentre();
 
   const [data, setData] = useState<MetricsData | null>(null);
   const [missedDoses, setMissedDoses] = useState<MissedDoseItem[]>([]);
@@ -79,8 +77,8 @@ export default function DashboardPage() {
     setError(null);
     try {
       const [metricsRes, missedRes] = await Promise.all([
-        apiFetch<MetricsData>(`/metrics?centreId=${CENTRE_ID}`),
-        apiFetch<{ count: number; doses: MissedDoseItem[] }>(`/doses/missed?centreId=${CENTRE_ID}`).catch(() => ({
+        apiFetch<MetricsData>(`/metrics?centreId=${centreId}`),
+        apiFetch<{ count: number; doses: MissedDoseItem[] }>(`/doses/missed?centreId=${centreId}`).catch(() => ({
           count: 0,
           doses: [],
         })),
@@ -93,7 +91,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [CENTRE_ID]);
+  }, [centreId]);
 
   useEffect(() => {
     fetchMetrics();
@@ -122,7 +120,7 @@ export default function DashboardPage() {
             </span>
           </div>
           <p className="text-sm text-ink-muted mt-0.5">
-            {data?.centre.name || 'Civil Hospital Anti-Rabies Clinic'} • {data?.centre.city || 'Mumbai'}
+            {data?.centre?.name || activeCentre.name} • {data?.centre?.city || activeCentre.city}
           </p>
         </div>
 

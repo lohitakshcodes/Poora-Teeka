@@ -1,7 +1,7 @@
 import { pool, query, withTransaction } from '../api/src/db';
 import { handler as missedDoseSweepHandler } from '../api/src/handlers/missed-dose-sweep';
 
-const CENTRE_ID = 'a0000000-0000-0000-0000-000000000001';
+const CENTRE_ID = process.env.SEED_CENTRE_ID || 'a0000000-0000-0000-0000-000000000001';
 
 interface ProtocolInfo {
   id: string;
@@ -20,13 +20,33 @@ async function seedDemo() {
   console.log('----------------------------------------------------------------\n');
 
   try {
-    // 1. Verify centre and protocols
+    // 1. Verify centre and protocols (auto-provision Sassoon if needed)
     console.log('🔍 Step 1: Verifying centre and protocols...');
-    const centreRes = await query('SELECT id, name, city FROM centres WHERE id = $1', [CENTRE_ID]);
+    let centreRes = await query('SELECT id, name, city FROM centres WHERE id = $1', [CENTRE_ID]);
     if (centreRes.rows.length === 0) {
-      throw new Error(`Centre ${CENTRE_ID} not found. Please run db/seed.sql first.`);
+      if (CENTRE_ID === '44444444-4444-4444-8444-444444444444') {
+        console.log('🏥 Auto-provisioning Sassoon General Hospital ARV Clinic in Pune...');
+        await query(`
+          INSERT INTO centres (id, name, city, open_vial_minutes, day_start, day_end)
+          VALUES ('44444444-4444-4444-8444-444444444444', 'Sassoon General Hospital ARV Clinic', 'Pune', 480, '08:30', '16:30')
+          ON CONFLICT (id) DO NOTHING
+        `);
+        centreRes = await query('SELECT id, name, city FROM centres WHERE id = $1', [CENTRE_ID]);
+      } else {
+        throw new Error(`Centre ${CENTRE_ID} not found. Please run db/seed.sql first.`);
+      }
     }
     console.log(`✅ Centre: ${centreRes.rows[0].name} (${centreRes.rows[0].city})`);
+
+    // Clean any previous seed data for this specific centre to guarantee idempotency
+    console.log(`🧹 Cleaning previous demo data for centre ${CENTRE_ID} to ensure clean idempotent run...`);
+    await query(`DELETE FROM dose_reservations WHERE open_vial_id IN (SELECT id FROM open_vials WHERE centre_id = $1)`, [CENTRE_ID]);
+    await query(`DELETE FROM open_vials WHERE centre_id = $1`, [CENTRE_ID]);
+    await query(`DELETE FROM doses WHERE course_id IN (SELECT id FROM courses WHERE centre_id = $1)`, [CENTRE_ID]);
+    await query(`DELETE FROM courses WHERE centre_id = $1`, [CENTRE_ID]);
+    await query(`DELETE FROM patients WHERE centre_id = $1`, [CENTRE_ID]);
+    await query(`DELETE FROM vial_lots WHERE centre_id = $1`, [CENTRE_ID]);
+    console.log(`✅ Previous data cleaned for centre ${CENTRE_ID}.`);
 
     const protoRes = await query<ProtocolInfo>('SELECT id, route, visit_offsets, units_per_visit FROM protocols');
     const protocols: Record<string, ProtocolInfo> = {};
@@ -37,19 +57,20 @@ async function seedDemo() {
 
     // 2. Ensure active stock in vial_lots
     console.log('\n🔍 Step 2: Replenishing fresh vial lots in clinic inventory...');
+    const isPune = CENTRE_ID.startsWith('44444444');
     const idLotRes = await query(
       `INSERT INTO vial_lots (centre_id, brand, ml, units_per_vial, expiry, received, remaining_unopened)
-       VALUES ($1, 'Rabivax-S Monsoon 2026', 1.00, 10, '2028-12-31', 200, 200)
+       VALUES ($1, $2, 1.00, 10, '2028-12-31', 200, 200)
        RETURNING id`,
-      [CENTRE_ID]
+      [CENTRE_ID, isPune ? 'Rabivax-S Pune Central Lot' : 'Rabivax-S Monsoon 2026']
     );
     const idLotId = idLotRes.rows[0].id;
 
     const imLotRes = await query(
       `INSERT INTO vial_lots (centre_id, brand, ml, units_per_vial, expiry, received, remaining_unopened)
-       VALUES ($1, 'Rabipur-IM Monsoon 2026', 1.00, 1, '2028-12-31', 100, 100)
+       VALUES ($1, $2, 1.00, 1, '2028-12-31', 100, 100)
        RETURNING id`,
-      [CENTRE_ID]
+      [CENTRE_ID, isPune ? 'Rabipur-IM Pune Central Lot' : 'Rabipur-IM Monsoon 2026']
     );
     const imLotId = imLotRes.rows[0].id;
     console.log(`✅ Stocked ID lot (${idLotId}) and IM lot (${imLotId}) with 300 unopened vials.`);
@@ -84,10 +105,15 @@ async function seedDemo() {
     for (let i = 1; i <= totalPatients; i++) {
       const isPediatric = i % 4 === 0; // 25% pediatric minors
       const pad = String(i).padStart(2, '0');
-      const fakeName = isPediatric ? `Synthetic Minor Patient-${pad}` : `Synthetic Adult Patient-${pad}`;
-      const phone = `+9190000000${pad}`;
-      const guardianPhone = isPediatric ? `+9191111100${pad}` : null;
-      const lang = i % 3 === 0 ? 'mr' : i % 3 === 1 ? 'hi' : 'en';
+      const cityTag = isPune ? 'Pune ' : '';
+      const fakeName = isPediatric ? `Synthetic Minor Patient-${cityTag}${pad}` : `Synthetic Adult Patient-${cityTag}${pad}`;
+      const phonePrefix = isPune ? '+9194444444' : '+9190000000';
+      const phone = `${phonePrefix}${pad}`;
+      const guardianPrefix = isPune ? '+9194444499' : '+9191111100';
+      const guardianPhone = isPediatric ? `${guardianPrefix}${pad}` : null;
+      const lang = isPune
+        ? (i % 4 === 0 ? 'hi' : i % 4 === 1 ? 'mr' : i % 4 === 2 ? 'mr' : 'en')
+        : (i % 3 === 0 ? 'mr' : i % 3 === 1 ? 'hi' : 'en');
 
       // Insert patient
       const pRes = await query(
@@ -278,8 +304,9 @@ async function seedDemo() {
        FROM doses d
        JOIN courses c ON c.id = d.course_id
        JOIN patients p ON p.id = c.patient_id
-      WHERE d.status = 'MISSED'
-      ORDER BY d.due_date DESC, d.seq ASC`
+      WHERE d.status = 'MISSED' AND c.centre_id = $1
+      ORDER BY d.due_date DESC, d.seq ASC`,
+      [CENTRE_ID]
     );
 
     console.table(missedCheckRes.rows);

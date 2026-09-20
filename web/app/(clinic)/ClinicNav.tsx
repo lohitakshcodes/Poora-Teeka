@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useCentre } from '@/lib/centreContext';
 
 interface NavItem {
   name: string;
@@ -69,6 +70,7 @@ const navItems: NavItem[] = [
 
 export function ClinicNav() {
   const pathname = usePathname();
+  const { centreId, activeCentre, setCentreId, centres } = useCentre();
 
   const isRouteActive = (href: string) => {
     if (href === '/app') {
@@ -79,6 +81,29 @@ export function ClinicNav() {
 
   return (
     <>
+      {/* Mobile Top Header with Centre Switcher (< 768px) */}
+      <header className="md:hidden bg-surface border-b border-border px-4 py-3 sticky top-0 z-30 flex items-center justify-between gap-2 shadow-xs">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="w-7 h-7 rounded-md bg-brand text-white font-bold flex items-center justify-center text-xs shadow-xs">
+            PT
+          </span>
+          <span className="font-bold text-sm text-ink tracking-tight">Poora Teeka</span>
+        </Link>
+
+        <select
+          value={centreId}
+          onChange={(e) => setCentreId(e.target.value)}
+          className="text-xs font-semibold bg-surfaceSunken border border-border/80 rounded-md px-2 py-1 text-ink cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand max-w-[190px] truncate"
+          aria-label="Switch Clinic Centre"
+        >
+          {centres.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.shortName}
+            </option>
+          ))}
+        </select>
+      </header>
+
       {/* Desktop Sidebar (>= 768px) */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-surface border-r border-border z-30">
         {/* Brand & Clinic Indicator */}
@@ -99,17 +124,27 @@ export function ClinicNav() {
             </div>
           </Link>
 
-          {/* Centre Awareness Indicator */}
-          <div className="mt-4 p-2.5 rounded-lg bg-surfaceSunken border border-border/80 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-statusGiven shrink-0" aria-hidden="true" />
-            <div className="truncate">
-              <p className="text-xs font-semibold text-ink truncate leading-tight">
-                Civil Hospital Clinic #1
-              </p>
-              <p className="text-[10px] text-ink-muted font-mono truncate">
-                Centre Pune • ap-south-1
-              </p>
+          {/* Centre Switcher */}
+          <div className="mt-4 p-2.5 rounded-lg bg-surfaceSunken border border-border/80 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-statusGiven shrink-0" aria-hidden="true" />
+                ARV Centre
+              </span>
+              <span className="text-[10px] font-mono text-ink-muted">{activeCentre.city}</span>
             </div>
+            <select
+              value={centreId}
+              onChange={(e) => setCentreId(e.target.value)}
+              className="w-full text-xs font-semibold bg-surface border border-border/80 rounded-md px-2 py-1.5 text-ink cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand"
+              aria-label="Switch Clinic Centre"
+            >
+              {centres.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.shortName}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

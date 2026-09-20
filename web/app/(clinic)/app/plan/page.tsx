@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api';
 import { SavingsCounter } from '@/components/SavingsCounter';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { EmptyState } from '@/components/EmptyState';
+import { useCentre } from '@/lib/centreContext';
 
 interface PatientItem {
   doseId: string;
@@ -45,8 +46,12 @@ interface BackendPlanResponse {
   };
   date: string;
   summary: {
-    totalScheduledPatients: number;
-    minorsCount: number;
+    centreId: string;
+    targetDate: string;
+    totalDuePatients: number;
+    minorPatientsCount: number;
+    totalScheduledPatients?: number;
+    minorsCount?: number;
     vialsNeeded: number;
     vialsNeededNaive: number;
     vialsSaved: number;
@@ -57,6 +62,8 @@ interface BackendPlanResponse {
     walkInReservedUnitsPerGroup: number;
     maxPlannedPatientsPerGroup: number;
     comparisonText: string;
+    dosesScheduledInPlan?: number;
+    availableSlotsCount?: number;
   };
   confirmed: boolean;
   confirmedDosesCount: number;
@@ -65,8 +72,7 @@ interface BackendPlanResponse {
 }
 
 export default function PlanPage() {
-  const CENTRE_ID =
-    process.env.NEXT_PUBLIC_CENTRE_ID || 'a0000000-0000-0000-0000-000000000001';
+  const { centreId } = useCentre();
 
   const [data, setData] = useState<BackendPlanResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +88,7 @@ export default function PlanPage() {
     }
     setError(null);
     try {
-      const url = `/plan/tomorrow?centreId=${CENTRE_ID}${isConfirm ? '&confirm=true' : ''}`;
+      const url = `/plan/tomorrow?centreId=${centreId}${isConfirm ? '&confirm=true' : ''}`;
       const res = await apiFetch<BackendPlanResponse>(url);
       setData(res);
 
@@ -97,7 +103,7 @@ export default function PlanPage() {
       setLoading(false);
       setConfirming(false);
     }
-  }, [CENTRE_ID]);
+  }, [centreId]);
 
   useEffect(() => {
     fetchPlan();
@@ -226,13 +232,13 @@ export default function PlanPage() {
             <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
               <span className="text-xs text-ink-muted block font-medium">Total Returning Patients</span>
               <span className="text-xl font-bold font-mono text-ink mt-0.5 block">
-                {summary.totalScheduledPatients} patients
+                {summary.totalScheduledPatients ?? summary.totalDuePatients} patients
               </span>
             </div>
             <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
               <span className="text-xs text-ink-muted block font-medium">Minors Prioritized</span>
               <span className="text-xl font-bold font-mono text-brand mt-0.5 block">
-                {summary.minorsCount} minors
+                {summary.minorsCount ?? summary.minorPatientsCount} minors
               </span>
             </div>
             <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">

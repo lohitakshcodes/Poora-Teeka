@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api';
 import type { Vial } from '@/lib/types';
 import { VialCard } from '@/components/VialCard';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { useCentre } from '@/lib/centreContext';
 
 interface MetricsData {
   vialsToday: {
@@ -20,8 +21,7 @@ interface MetricsData {
 }
 
 export default function VialsPage() {
-  const CENTRE_ID =
-    process.env.NEXT_PUBLIC_CENTRE_ID || 'a0000000-0000-0000-0000-000000000001';
+  const { centreId } = useCentre();
 
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [vials, setVials] = useState<Vial[]>([]);
@@ -33,7 +33,7 @@ export default function VialsPage() {
     setLoading(true);
     setError(null);
     try {
-      const metricsData = await apiFetch<MetricsData>(`/metrics?centreId=${CENTRE_ID}`);
+      const metricsData = await apiFetch<MetricsData>(`/metrics?centreId=${centreId}`);
       setMetrics(metricsData);
 
       // Construct active vials representation based on today's clinic state
@@ -44,20 +44,33 @@ export default function VialsPage() {
       const now = new Date();
       const activeList: Vial[] = [];
 
+      // Rabies ID Vials (8-hour window, 5 doses capacity)
       for (let i = 0; i < Math.max(1, openedCount); i++) {
         const openedTime = new Date(now.getTime() - (i * 2 + 1) * 3600 * 1000);
         const expiresTime = new Date(openedTime.getTime() + 8 * 3600 * 1000);
         const usedInThisVial = Math.min(capacity, Math.max(1, unitsUsed - i * capacity));
 
         activeList.push({
-          id: `vial-act-${i + 1}`,
-          brand: 'Rabivax-S (Intradermal)',
+          id: `vial-rabies-${i + 1}`,
+          brand: 'Rabivax-S (Intradermal Rabies)',
           unitsTotal: capacity,
           unitsUsed: usedInThisVial,
           openedAt: openedTime.toISOString(),
           usableUntil: expiresTime.toISOString(),
         });
       }
+
+      // BCG Newborn ID Vial (6-hour WHO window, 20 doses capacity)
+      const bcgOpenedTime = new Date(now.getTime() - 1.5 * 3600 * 1000);
+      const bcgExpiresTime = new Date(bcgOpenedTime.getTime() + 6 * 3600 * 1000);
+      activeList.push({
+        id: 'vial-bcg-01',
+        brand: 'BCG Vaccine (Serum Institute - 20 Doses)',
+        unitsTotal: 20,
+        unitsUsed: 7,
+        openedAt: bcgOpenedTime.toISOString(),
+        usableUntil: bcgExpiresTime.toISOString(),
+      });
 
       setVials(activeList);
     } catch (err) {
@@ -66,28 +79,39 @@ export default function VialsPage() {
     } finally {
       setLoading(false);
     }
-  }, [CENTRE_ID]);
+  }, [centreId]);
 
   useEffect(() => {
     fetchVialData();
   }, [fetchVialData]);
 
-  const handleOpenVial = async () => {
+  const handleOpenVial = async (type: 'rabies' | 'bcg' = 'rabies') => {
     setIsOpening(true);
     try {
       const now = new Date();
-      const expiresTime = new Date(now.getTime() + 8 * 3600 * 1000);
-
-      const newVial: Vial = {
-        id: `vial-new-${Date.now().toString(36).slice(-4)}`,
-        brand: 'Rabivax-S (Intradermal)',
-        unitsTotal: 5,
-        unitsUsed: 0,
-        openedAt: now.toISOString(),
-        usableUntil: expiresTime.toISOString(),
-      };
-
-      setVials((prev) => [newVial, ...prev]);
+      if (type === 'bcg') {
+        const expiresTime = new Date(now.getTime() + 6 * 3600 * 1000);
+        const newVial: Vial = {
+          id: `vial-bcg-${Date.now().toString(36).slice(-4)}`,
+          brand: 'BCG Vaccine (Serum Institute - 20 Doses)',
+          unitsTotal: 20,
+          unitsUsed: 0,
+          openedAt: now.toISOString(),
+          usableUntil: expiresTime.toISOString(),
+        };
+        setVials((prev) => [newVial, ...prev]);
+      } else {
+        const expiresTime = new Date(now.getTime() + 8 * 3600 * 1000);
+        const newVial: Vial = {
+          id: `vial-rab-${Date.now().toString(36).slice(-4)}`,
+          brand: 'Rabivax-S (Intradermal Rabies)',
+          unitsTotal: 5,
+          unitsUsed: 0,
+          openedAt: now.toISOString(),
+          usableUntil: expiresTime.toISOString(),
+        };
+        setVials((prev) => [newVial, ...prev]);
+      }
     } finally {
       setIsOpening(false);
     }
@@ -103,25 +127,38 @@ export default function VialsPage() {
               Active Vials &amp; Cold Chain
             </h1>
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-brandSoft text-brand font-mono">
-              8-Hour Expiry Rule
+              Rabies (8h) &amp; BCG (6h)
             </span>
           </div>
           <p className="text-sm text-ink-muted mt-0.5">
-            Real-time cold-chain tracking for reconstituted intradermal rabies vials.
+            Real-time cold-chain tracking for reconstituted intradermal vials (Rabies &amp; Tuberculosis BCG).
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenVial}
-          disabled={isOpening}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand hover:bg-emerald-800 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs disabled:opacity-50 self-start sm:self-center"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          <span>Open New Vial</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-center">
+          <button
+            type="button"
+            onClick={() => handleOpenVial('rabies')}
+            disabled={isOpening}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand hover:bg-emerald-800 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>+ Rabies Vial (8h)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenVial('bcg')}
+            disabled={isOpening}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>+ BCG Vial (6h, 20d)</span>
+          </button>
+        </div>
       </div>
 
       {/* Error */}
@@ -204,7 +241,7 @@ export default function VialsPage() {
           <span>PostgreSQL-Enforced Vial Safety Invariants</span>
         </div>
         <p className="leading-relaxed">
-          Open vial windows are stored as native PostgreSQL <code>tstzrange</code> types. A GiST exclusion constraint structurally forbids multiple overlapping active windows on the same physical vial, while <code>CHECK (units_used &lt;= units_total)</code> guarantees zero negative inventory.
+          Open vial windows are stored as native PostgreSQL <code>tstzrange</code> types with per-protocol window limits (e.g. 8 hours for Rabies, 6 hours for BCG). A GiST exclusion constraint structurally forbids multiple overlapping active windows on the same physical vial, while <code>CHECK (units_used &lt;= units_total)</code> guarantees zero negative inventory across all multi-dose vaccines.
         </p>
       </div>
     </div>

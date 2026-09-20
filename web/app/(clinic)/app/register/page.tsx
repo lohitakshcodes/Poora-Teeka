@@ -3,20 +3,22 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { apiFetch, ApiError } from '@/lib/api';
-import type { Patient, Course, Dose } from '@/lib/types';
+import { PROTOCOLS, type Patient, type Course, type Dose, type ProtocolMetadata } from '@/lib/types';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Toast } from '@/components/Toast';
+import { useCentre } from '@/lib/centreContext';
 
-type ProtocolId = 'IN-UTRC-ID-v1' | 'IN-ESSEN-IM-v1';
 type SupportedLanguage = 'hi' | 'mr' | 'en';
 
 export default function RegisterPage() {
+  const { centreId } = useCentre();
+
   // Form fields
   const [name, setName] = useState('');
   const [phoneRaw, setPhoneRaw] = useState('');
   const [language, setLanguage] = useState<SupportedLanguage>('hi');
   const [guardianPhone, setGuardianPhone] = useState('');
-  const [protocolId, setProtocolId] = useState<ProtocolId>('IN-UTRC-ID-v1');
+  const [protocolId, setProtocolId] = useState<string>('IN-UTRC-ID-v1');
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,9 +61,6 @@ export default function RegisterPage() {
     setShowToast(false);
   };
 
-  const CENTRE_ID =
-    process.env.NEXT_PUBLIC_CENTRE_ID || 'a0000000-0000-0000-0000-000000000001';
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid || isSubmitting) return;
@@ -88,13 +87,14 @@ export default function RegisterPage() {
           phone_e164: phoneE164,
           language,
           guardian_phone: guardianE164 ?? null,
-          centre_id: CENTRE_ID,
+          centre_id: centreId,
         }),
       });
 
       // Step 2: POST /courses with day0 = today's date (YYYY-MM-DD)
       const day0 = new Date().toISOString().split('T')[0];
-      const dbProtocolId = protocolId === 'IN-UTRC-ID-v1' ? 'thai_red_cross_id' : 'essen_im';
+      const selectedProto = PROTOCOLS.find((p) => p.id === protocolId) || PROTOCOLS[0];
+      const dbProtocolId = selectedProto.dbId;
 
       const courseRes = await apiFetch<any>('/courses', {
         method: 'POST',
@@ -104,7 +104,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           patientId: patient.id,
           protocolId: dbProtocolId,
-          centreId: CENTRE_ID,
+          centreId: centreId,
           day0,
         }),
       });
@@ -116,13 +116,13 @@ export default function RegisterPage() {
       };
 
       const rawDoses = courseRes.doses || courseRes.course?.doses || [];
-      const totalDoses = rawDoses.length || (protocolId === 'IN-UTRC-ID-v1' ? 4 : 5);
+      const totalDoses = rawDoses.length || selectedProto.visitOffsets.length;
 
       const normalizedCourse: Course = {
         id: courseRes.course?.id || courseRes.id,
         patientId: patient.id,
         protocolId: dbProtocolId,
-        route: (courseRes.course?.route || courseRes.route || (protocolId === 'IN-UTRC-ID-v1' ? 'ID' : 'IM')) as 'ID' | 'IM',
+        route: (courseRes.course?.route || courseRes.route || selectedProto.route) as 'ID' | 'IM',
         day0: courseRes.course?.day0 || courseRes.day0 || day0,
         createdAt: courseRes.course?.created_at || new Date().toISOString(),
         doses: rawDoses.map((d: any) => ({
@@ -170,8 +170,21 @@ export default function RegisterPage() {
     }
   };
 
-  // Calculate human day label for rabies dose sequence
+  // Calculate human day label for dose sequence
   const getDoseDayLabel = (dose: Dose, totalDoses: number) => {
+    const proto = PROTOCOLS.find((p) => p.id === createdCourse?.protocolId || p.dbId === createdCourse?.protocolId);
+    if (proto) {
+      if (proto.id === 'IN-BCG-v1') {
+        return 'Birth Dose (Day 0)';
+      }
+      if (proto.id === 'IN-HEPB-IM-v1') {
+        switch (dose.seq) {
+          case 1: return 'Dose 1 (Day 0 - Today)';
+          case 2: return 'Dose 2 (Month 1 - Day 30)';
+          case 3: return 'Dose 3 (Month 6 - Day 180)';
+        }
+      }
+    }
     if (totalDoses === 4) {
       // ID Protocol (0, 3, 7, 28)
       switch (dose.seq) {
@@ -211,7 +224,7 @@ export default function RegisterPage() {
             Register Patient
           </h1>
           <p className="text-sm text-ink-muted mt-0.5">
-            Initiate an anti-rabies post-exposure prophylaxis (PEP) course
+            Initiate a vaccination course (Rabies PEP, Tuberculosis BCG, or Hepatitis B)
           </p>
         </div>
         <Link
@@ -281,7 +294,7 @@ export default function RegisterPage() {
               <div>
                 <span className="text-ink-muted block">Protocol</span>
                 <span className="font-semibold text-ink text-sm">
-                  {createdCourse.route === 'ID' ? 'Intradermal (ID)' : 'Intramuscular (IM)'}
+                  {PROTOCOLS.find((p) => p.id === createdCourse.protocolId || p.dbId === createdCourse.protocolId)?.name || (createdCourse.route === 'ID' ? 'Intradermal (ID)' : 'Intramuscular (IM)')}
                 </span>
               </div>
               <div>
@@ -490,8 +503,8 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Protocol Selector as two clear tappable cards */}
-          <div className="space-y-3 pt-2">
+          {/* Protocol Selector as clear grouped cards */}
+          <div className="space-y-4 pt-2">
             <div>
               <label className="block text-sm font-bold text-ink">
                 Vaccination Protocol <span className="text-urgent">*</span>
@@ -501,66 +514,159 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {/* Option 1: Intradermal (ID) */}
-              <button
-                type="button"
-                onClick={() => setProtocolId('IN-UTRC-ID-v1')}
-                className={`p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative cursor-pointer ${
-                  protocolId === 'IN-UTRC-ID-v1'
-                    ? 'border-brand bg-brandSoft/50 shadow-sm'
-                    : 'border-border bg-surface hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-base font-bold text-ink">
-                    Intradermal (ID)
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-brand text-white px-2 py-0.5 rounded-full font-mono">
-                    Recommended
-                  </span>
-                </div>
-                <p className="text-xs font-semibold text-brand mb-2">
-                  4 visits, less vaccine used per visit
-                </p>
-                <p className="text-xs text-ink-muted leading-relaxed">
-                  Days: <strong>0, 3, 7, 28</strong>. 2-site ID regimen (0.1 mL per site). Saves up to 80% vaccine vial capacity via appointment batching.
-                </p>
-                <div className="mt-3 flex items-center gap-1.5 font-mono text-[11px] text-ink-muted">
-                  <span className="w-2 h-2 rounded-full bg-brand" aria-hidden="true" />
-                  <span>Protocol: IN-UTRC-ID-v1</span>
-                </div>
-              </button>
+            {/* Category: Rabies Post-Exposure Prophylaxis */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-urgent" />
+                Rabies Post-Exposure Prophylaxis (PEP)
+              </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Rabies ID */}
+                <button
+                  type="button"
+                  onClick={() => setProtocolId('IN-UTRC-ID-v1')}
+                  className={`p-4 rounded-xl border-2 text-left transition-all relative cursor-pointer ${
+                    protocolId === 'IN-UTRC-ID-v1'
+                      ? 'border-brand bg-brandSoft/50 shadow-sm'
+                      : 'border-border bg-surface hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-sm font-bold text-ink">
+                      Rabies Intradermal (ID)
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-brand text-white px-2 py-0.5 rounded-full font-mono">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-brand mb-1">
+                    4 visits • 8h vial countdown • Shared vial batching
+                  </p>
+                  <p className="text-xs text-ink-muted leading-relaxed">
+                    Days: <strong>0, 3, 7, 28</strong>. Updated Thai Red Cross 2-site ID regimen. Saves up to 80% vaccine vial capacity.
+                  </p>
+                  <div className="mt-2.5 flex items-center gap-1.5 font-mono text-[11px] text-ink-muted">
+                    <span className="w-2 h-2 rounded-full bg-brand" aria-hidden="true" />
+                    <span>IN-UTRC-ID-v1</span>
+                  </div>
+                </button>
 
-              {/* Option 2: Intramuscular (IM) */}
-              <button
-                type="button"
-                onClick={() => setProtocolId('IN-ESSEN-IM-v1')}
-                className={`p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative cursor-pointer ${
-                  protocolId === 'IN-ESSEN-IM-v1'
-                    ? 'border-brand bg-brandSoft/50 shadow-sm'
-                    : 'border-border bg-surface hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-base font-bold text-ink">
-                    Intramuscular (IM)
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-mono">
-                    Standard
-                  </span>
-                </div>
-                <p className="text-xs font-semibold text-ink-muted mb-2">
-                  5 visits, standard dosing
-                </p>
-                <p className="text-xs text-ink-muted leading-relaxed">
-                  Days: <strong>0, 3, 7, 14, 28</strong>. Essen regimen (1 full dose in deltoid per visit). Utilizes 1 vial per patient visit.
-                </p>
-                <div className="mt-3 flex items-center gap-1.5 font-mono text-[11px] text-ink-muted">
-                  <span className="w-2 h-2 rounded-full bg-slate-400" aria-hidden="true" />
-                  <span>Protocol: IN-ESSEN-IM-v1</span>
-                </div>
-              </button>
+                {/* Rabies IM */}
+                <button
+                  type="button"
+                  onClick={() => setProtocolId('IN-ESSEN-IM-v1')}
+                  className={`p-4 rounded-xl border-2 text-left transition-all relative cursor-pointer ${
+                    protocolId === 'IN-ESSEN-IM-v1'
+                      ? 'border-brand bg-brandSoft/50 shadow-sm'
+                      : 'border-border bg-surface hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-sm font-bold text-ink">
+                      Rabies Intramuscular (IM)
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-mono">
+                      Standard
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-ink-muted mb-1">
+                    5 visits • 1 vial per visit
+                  </p>
+                  <p className="text-xs text-ink-muted leading-relaxed">
+                    Days: <strong>0, 3, 7, 14, 28</strong>. Essen regimen (1 full dose in deltoid per visit).
+                  </p>
+                  <div className="mt-2.5 flex items-center gap-1.5 font-mono text-[11px] text-ink-muted">
+                    <span className="w-2 h-2 rounded-full bg-slate-400" aria-hidden="true" />
+                    <span>IN-ESSEN-IM-v1</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Category: Tuberculosis (BCG) */}
+            <div className="space-y-2 pt-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Tuberculosis (Universal Immunization Programme)
+              </span>
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setProtocolId('IN-BCG-v1')}
+                  className={`p-4 rounded-xl border-2 text-left transition-all relative cursor-pointer ${
+                    protocolId === 'IN-BCG-v1'
+                      ? 'border-brand bg-brandSoft/50 shadow-sm'
+                      : 'border-border bg-surface hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-ink">
+                        BCG Vaccine (Newborn Single-Dose ID)
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-mono">
+                        20 Doses/Vial
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-mono">
+                      6h Discard Window
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-brand mb-1">
+                    1 visit (Day 0 at birth) • Intradermal • Freeze-dried multi-dose vial
+                  </p>
+                  <p className="text-xs text-ink-muted leading-relaxed">
+                    Reconstituted freeze-dried vaccine. Must be discarded within 6 hours. Shares identical reservation concurrency logic with rabies ID.
+                  </p>
+                  <div className="mt-2.5 flex items-center gap-1.5 font-mono text-[11px] text-ink-muted">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600" aria-hidden="true" />
+                    <span>IN-BCG-v1</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Category: Hepatitis B */}
+            <div className="space-y-2 pt-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                Hepatitis B (Universal Immunization Programme)
+              </span>
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setProtocolId('IN-HEPB-IM-v1')}
+                  className={`p-4 rounded-xl border-2 text-left transition-all relative cursor-pointer ${
+                    protocolId === 'IN-HEPB-IM-v1'
+                      ? 'border-brand bg-brandSoft/50 shadow-sm'
+                      : 'border-border bg-surface hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-ink">
+                        Hepatitis B (3-Dose Schedule IM)
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-mono">
+                        3 Visits (0, 30, 180d)
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-mono">
+                      28-Day Open Vial
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-ink-muted mb-1">
+                    Birth/Dose 1 (Day 0), Dose 2 (Month 1), Dose 3 (Month 6) • Intramuscular
+                  </p>
+                  <p className="text-xs text-ink-muted leading-relaxed">
+                    Liquid suspension vaccine. Remains usable up to 28 days once opened under cold chain. Uses identical transactional dose calendar &amp; outbox reminder engine.
+                  </p>
+                  <div className="mt-2.5 flex items-center gap-1.5 font-mono text-[11px] text-ink-muted">
+                    <span className="w-2 h-2 rounded-full bg-blue-600" aria-hidden="true" />
+                    <span>IN-HEPB-IM-v1</span>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
 

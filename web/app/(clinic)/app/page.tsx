@@ -7,6 +7,7 @@ import type { Dose, TodayDosesResponse } from '@/lib/types';
 import { DoseCard } from '@/components/DoseCard';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { EmptyState } from '@/components/EmptyState';
+import { useCentre } from '@/lib/centreContext';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Route filter type
@@ -23,8 +24,7 @@ function getDoseRoute(dose: Dose): 'ID' | 'IM' {
 // Today's Queue page
 // ────────────────────────────────────────────────────────────────────────────
 export default function TodayPage() {
-  const CENTRE_ID =
-    process.env.NEXT_PUBLIC_CENTRE_ID || 'a0000000-0000-0000-0000-000000000001';
+  const { centreId, activeCentre } = useCentre();
 
   const [doses, setDoses] = useState<Dose[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ export default function TodayPage() {
     const today = new Date().toISOString().split('T')[0];
     try {
       const data = await apiFetch<any>(
-        `/doses/today?centreId=${CENTRE_ID}&date=${today}`
+        `/doses/today?centreId=${centreId}&date=${today}`
       );
       const rawList = data.doses ?? [];
       const normalized: Dose[] = rawList.map((raw: any) => ({
@@ -66,7 +66,7 @@ export default function TodayPage() {
     } finally {
       setLoading(false);
     }
-  }, [CENTRE_ID]);
+  }, [centreId]);
 
   useEffect(() => {
     fetchDoses();

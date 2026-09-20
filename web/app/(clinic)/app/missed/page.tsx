@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { useCentre } from '@/lib/centreContext';
 
 interface MissedDoseItem {
   dose_id: string;
@@ -25,8 +26,7 @@ interface MissedDoseItem {
 type TriageFilter = 'ALL' | 'CRITICAL' | 'PRIORITY' | 'ROUTINE';
 
 export default function MissedPage() {
-  const CENTRE_ID =
-    process.env.NEXT_PUBLIC_CENTRE_ID || 'a0000000-0000-0000-0000-000000000001';
+  const { centreId } = useCentre();
 
   const [doses, setDoses] = useState<MissedDoseItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ export default function MissedPage() {
     setError(null);
     try {
       const data = await apiFetch<{ count: number; doses: MissedDoseItem[] }>(
-        `/doses/missed?centreId=${CENTRE_ID}`
+        `/doses/missed?centreId=${centreId}`
       );
       setDoses(data.doses || []);
     } catch (err) {
@@ -49,7 +49,7 @@ export default function MissedPage() {
     } finally {
       setLoading(false);
     }
-  }, [CENTRE_ID]);
+  }, [centreId]);
 
   useEffect(() => {
     fetchMissed();

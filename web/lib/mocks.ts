@@ -360,11 +360,19 @@ export function handleMockRequest<T>(path: string, options?: RequestInit): T {
     const protocolId = courseReq.protocolId || 'IN-UTRC-ID-v1';
     const day0 = courseReq.day0 || getTodayDateStr();
 
-    const isEssenIM = protocolId === 'IN-ESSEN-IM-v1';
-    const route = isEssenIM ? 'IM' : 'ID';
-    // If protocolId is "IN-UTRC-ID-v1": 4 doses at day0 + 0, 3, 7, 28 days
-    // If "IN-ESSEN-IM-v1": 5 doses at day0 + 0, 3, 7, 14, 28 days
-    const offsets = isEssenIM ? [0, 3, 7, 14, 28] : [0, 3, 7, 28];
+    let offsets = [0, 3, 7, 28];
+    let route: 'ID' | 'IM' = 'ID';
+
+    if (protocolId === 'IN-ESSEN-IM-v1' || protocolId === 'essen_im') {
+      offsets = [0, 3, 7, 14, 28];
+      route = 'IM';
+    } else if (protocolId === 'IN-BCG-v1') {
+      offsets = [0];
+      route = 'ID';
+    } else if (protocolId === 'IN-HEPB-IM-v1') {
+      offsets = [0, 30, 180];
+      route = 'IM';
+    }
     const totalDoses = offsets.length;
 
     const doses: Dose[] = offsets.map((offset, index) => ({

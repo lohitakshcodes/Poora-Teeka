@@ -67,6 +67,8 @@ export interface FunnelStep {
   seq: number;
   given: number;
   scheduled: number;
+  total?: number;
+  completionRatePct?: number;
 }
 
 export interface MetricsResponse {

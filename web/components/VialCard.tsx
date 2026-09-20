@@ -10,6 +10,19 @@ interface VialCardProps {
 }
 
 export function VialCard({ vial, className = '' }: VialCardProps) {
+  const [now, setNow] = React.useState<number>(() => Date.now());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const targetMs = new Date(vial.usableUntil).getTime();
+  const remainingMs = targetMs - now;
+  const isExpired = remainingMs <= 0;
+  const isUnder60 = remainingMs < 3600 * 1000; // includes under 60m and expired
+  const isUrgent = isUnder60 || isExpired;
+
   const unitsTotal = Math.max(1, vial.unitsTotal);
   const unitsUsed = Math.min(unitsTotal, Math.max(0, vial.unitsUsed));
   const unitsRemaining = Math.max(0, unitsTotal - unitsUsed);
@@ -36,7 +49,11 @@ export function VialCard({ vial, className = '' }: VialCardProps) {
 
   return (
     <div
-      className={`bg-white rounded-xl shadow-sm p-5 border border-slate-200/80 flex flex-col items-center text-center ${className}`}
+      className={`rounded-xl shadow-sm p-5 border flex flex-col items-center text-center transition-colors duration-300 ${
+        isUrgent
+          ? 'bg-[var(--urgent-bg)] border-red-200 border-l-[4px] border-l-[var(--urgent)]'
+          : 'bg-white border-slate-200/80'
+      } ${className}`}
     >
       {/* Top Header: Vial brand name in text-lg font-semibold, "X of Y units used" in text-sm text-slate-500 */}
       <div className="w-full text-left mb-3">

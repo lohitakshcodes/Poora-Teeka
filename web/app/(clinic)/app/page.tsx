@@ -121,6 +121,10 @@ export default function TodayPage() {
     [doses, fetchDoses]
   );
 
+  const handleExitComplete = useCallback((doseId: string) => {
+    setDoses((prev) => prev.filter((d) => d.id !== doseId));
+  }, []);
+
   // ── Derived state ─────────────────────────────────────────────────────────
   const today = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -307,6 +311,7 @@ export default function TodayPage() {
                     ? handleMarkGiven
                     : undefined
                 }
+                onExitComplete={handleExitComplete}
               />
             </React.Fragment>
           ))}

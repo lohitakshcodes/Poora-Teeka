@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api';
 import type { Vial } from '@/lib/types';
 import { VialCard } from '@/components/VialCard';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { EmptyState } from '@/components/EmptyState';
 import { useCentre } from '@/lib/centreContext';
 
 interface MetricsData {
@@ -229,6 +230,16 @@ export default function VialsPage() {
               <VialCard key={vial.id} vial={vial} />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Empty State when no vials are open */}
+      {!loading && vials.length === 0 && (
+        <div className="py-8">
+          <EmptyState
+            title="Counter is Clear"
+            message="No vials open right now."
+          />
         </div>
       )}
 

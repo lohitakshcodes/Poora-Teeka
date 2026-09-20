@@ -30,25 +30,27 @@ export function CountdownTimer({
 
   const isExpired = remainingMs <= 0;
   const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
-  // Under 60 minutes: text-red-600 font-bold
   const isUnder60 = !isExpired && totalSeconds < 3600;
+  const isUnder10 = !isExpired && totalSeconds < 600;
 
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
   const timeString = isExpired
-    ? '00:00:00'
+    ? 'EXPIRED'
     : `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   return (
     <div className={`flex flex-col items-center ${className}`} suppressHydrationWarning>
       <span
         className={`font-mono text-2xl tracking-wide tabular-nums ${
-          isUnder60
-            ? 'text-red-600 font-bold animate-pulse'
-            : isExpired
-            ? 'text-red-600 font-bold'
+          isExpired
+            ? 'text-[var(--urgent)] font-bold'
+            : isUnder10
+            ? 'text-[var(--urgent)] font-bold animate-urgent-pulse'
+            : isUnder60
+            ? 'text-[var(--urgent)] font-bold'
             : 'text-slate-800 font-semibold'
         }`}
       >
@@ -56,7 +58,13 @@ export function CountdownTimer({
       </span>
       {showLabel && (
         <span className="text-xs text-slate-500 mt-1">
-          {isExpired ? 'Cold chain expired' : isUnder60 ? 'Expires in under 1 hour' : 'Cold chain window remaining'}
+          {isExpired
+            ? 'Cold chain expired'
+            : isUnder10
+            ? 'Critical: under 10 minutes remaining'
+            : isUnder60
+            ? 'Expires in under 1 hour'
+            : 'Cold chain window remaining'}
         </span>
       )}
     </div>

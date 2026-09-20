@@ -8,9 +8,14 @@ interface FunnelBarProps {
 }
 
 export function FunnelBar({ step, className = '' }: FunnelBarProps) {
-  const percentage = step.scheduled > 0
-    ? Math.round((step.given / step.scheduled) * 100)
-    : 0;
+  const percentage =
+    step.completionRatePct !== undefined
+      ? step.completionRatePct
+      : step.total && step.total > 0
+      ? Math.round((step.given / step.total) * 100)
+      : step.scheduled > 0
+      ? Math.round((step.given / step.scheduled) * 100)
+      : 0;
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>

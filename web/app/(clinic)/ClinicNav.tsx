@@ -105,7 +105,7 @@ export function ClinicNav() {
       </header>
 
       {/* Desktop Sidebar (>= 768px) */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-surface border-r border-border z-30">
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-surface border-r border-border z-30 rounded-r-3xl shadow-sm overflow-hidden">
         {/* Brand & Clinic Indicator */}
         <div className="p-5 border-b border-border/70">
           <Link href="/" className="group block">
@@ -125,7 +125,7 @@ export function ClinicNav() {
           </Link>
 
           {/* Centre Switcher */}
-          <div className="mt-4 p-2.5 rounded-lg bg-surfaceSunken border border-border/80 space-y-1.5">
+          <div className="mt-4 p-2.5 rounded-xl bg-surfaceSunken border border-border/80 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-statusGiven shrink-0" aria-hidden="true" />
@@ -156,7 +156,7 @@ export function ClinicNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-semibold transition-all ${
                   active
                     ? 'bg-brand text-white shadow-xs font-bold'
                     : 'text-ink-muted hover:text-ink hover:bg-surfaceSunken'

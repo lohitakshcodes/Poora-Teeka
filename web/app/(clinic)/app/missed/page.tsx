@@ -212,7 +212,7 @@ export default function MissedPage() {
         <div className="pt-8">
           <EmptyState
             title="All Patients on Track"
-            message="Nothing missed in this category. Everyone's schedule is up to date."
+            message="Nothing missed. Everyone's on track."
           />
         </div>
       )}

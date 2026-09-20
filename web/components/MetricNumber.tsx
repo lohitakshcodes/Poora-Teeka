@@ -9,6 +9,7 @@ interface MetricNumberProps {
   suffix?: string;
   decimals?: number;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export function MetricNumber({
@@ -18,6 +19,7 @@ export function MetricNumber({
   suffix = '',
   decimals = 0,
   className = '',
+  style,
 }: MetricNumberProps) {
   const [displayValue, setDisplayValue] = useState<number>(0);
   const startTimestampRef = useRef<number | null>(null);
@@ -62,7 +64,7 @@ export function MetricNumber({
   const formatted = decimals > 0 ? displayValue.toFixed(decimals) : Math.round(displayValue).toString();
 
   return (
-    <span className={`font-mono font-bold tracking-tight ${className}`}>
+    <span className={className ? className : 'font-mono font-bold tracking-tight'} style={style}>
       {prefix}
       {formatted}
       {suffix}

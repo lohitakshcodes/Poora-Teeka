@@ -54,6 +54,31 @@ function formatLocalizedDate(dateStr: string | null, lang: SupportedLanguage): s
   return `${monthsEn[mIdx]} ${d}`;
 }
 
+// Common name transliterations for authentic vernacular experience
+const DEVANAGARI_NAMES: Record<string, string> = {
+  Pooja: 'पूजा',
+  Ramesh: 'रमेश',
+  Suresh: 'सुरेश',
+  Gaurav: 'गौरव',
+  Ritu: 'रितु',
+  Kiran: 'किरण',
+  Rohan: 'रोहन',
+  Ananya: 'अनन्या',
+  Naveen: 'नवीन',
+  Sonal: 'सोनल',
+  Manoj: 'मनोज',
+  Geeta: 'गीता',
+  Harish: 'हरीश',
+  Arjun: 'अर्जुन',
+  Kavya: 'काव्या',
+  Priya: 'प्रिया',
+};
+
+function getLocalizedName(name: string, lang: SupportedLanguage): string {
+  if (lang === 'en') return name;
+  return DEVANAGARI_NAMES[name] || name;
+}
+
 export function PatientPortalView({
   initialData,
   token,
@@ -63,11 +88,12 @@ export function PatientPortalView({
 }) {
   const [data] = useState<PatientStatusData | null>(initialData);
   const [lang, setLang] = useState<SupportedLanguage>(
-    (initialData?.language as SupportedLanguage) || 'hi'
+    (initialData?.language as SupportedLanguage) || 'mr'
   );
 
   // Derived display values
-  const firstName = data?.firstName || 'Patient';
+  const rawFirstName = data?.firstName || data?.fullName?.split(' ')[0] || 'Patient';
+  const patientDisplayName = getLocalizedName(rawFirstName, lang);
   const dosesGiven = data?.dosesGiven ?? 0;
   const dosesTotal = data?.dosesTotal ?? 4;
   const isComplete = dosesGiven >= dosesTotal && dosesTotal > 0;
@@ -79,7 +105,8 @@ export function PatientPortalView({
   // Translations with dynamic patient values
   const translations = {
     en: {
-      greeting: `Hi ${firstName} 👋`,
+      greetingPrefix: 'Hi',
+      greeting: `Hi ${patientDisplayName} 👋`,
       prompt: isComplete
         ? 'Your vaccination course is fully complete! 🎉'
         : 'Your next rabies vaccine dose is on',
@@ -94,7 +121,8 @@ export function PatientPortalView({
       help: 'Need help or missed your date? Call the clinic helpline: 1800-209-4357',
     },
     hi: {
-      greeting: `नमस्ते ${firstName} 👋`,
+      greetingPrefix: 'नमस्ते',
+      greeting: `नमस्ते ${patientDisplayName} 👋`,
       prompt: isComplete
         ? 'आपका टीकाकरण कोर्स सफलतापूर्वक पूरा हो चुका है! 🎉'
         : 'आपकी अगली रेबीज वैक्सीन की खुराक है',
@@ -109,7 +137,8 @@ export function PatientPortalView({
       help: 'मदद चाहिए या तारीख छूट गई? क्लीनिक हेल्पलाइन पर कॉल करें: 1800-209-4357',
     },
     mr: {
-      greeting: `नमस्कार ${firstName} 👋`,
+      greetingPrefix: 'नमस्कार',
+      greeting: `नमस्कार ${patientDisplayName} 👋`,
       prompt: isComplete
         ? 'आपला लसीकरण कोर्स पूर्ण झाला आहे! 🎉'
         : 'तुमचा पुढील रेबीज लस डोस या दिवशी आहे',
@@ -160,8 +189,12 @@ export function PatientPortalView({
         <div className="my-auto py-8 space-y-6">
           {/* 1. Patient's first name only, large, friendly */}
           <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl font-black text-ink tracking-tight">
-              {t.greeting}
+            <h1 className="text-3xl sm:text-4xl font-bold text-ink tracking-tight flex items-center gap-2 flex-wrap">
+              <span>{t.greetingPrefix}</span>
+              <span className="text-brand font-black underline decoration-brand/30 underline-offset-4">
+                {patientDisplayName}
+              </span>
+              <span>👋</span>
             </h1>
             {/* 2. One clear, calm sentence */}
             <p className="text-lg sm:text-xl text-ink-muted leading-snug">

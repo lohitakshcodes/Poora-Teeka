@@ -8,12 +8,15 @@ import { apiFetch } from '@/lib/api';
 interface DoseCardProps {
   dose: Dose;
   onMarkGiven?: (doseId: string) => Promise<void> | void;
+  onExitComplete?: (doseId: string) => void;
   className?: string;
 }
 
-export function DoseCard({ dose, onMarkGiven, className = '' }: DoseCardProps) {
+export function DoseCard({ dose, onMarkGiven, onExitComplete, className = '' }: DoseCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [isRemoved, setIsRemoved] = useState(false);
 
   // FHIR Modal State
   const [showFhirModal, setShowFhirModal] = useState(false);
@@ -22,7 +25,18 @@ export function DoseCard({ dose, onMarkGiven, className = '' }: DoseCardProps) {
   const [fhirError, setFhirError] = useState<string | null>(null);
   const [fhirCopied, setFhirCopied] = useState(false);
 
-  const status = isExiting ? 'GIVEN' : dose.status;
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('fhir') === 'true' && dose.status === 'GIVEN') {
+        handleOpenFhir();
+      }
+    }
+  }, [dose.status]);
+
+  if (isRemoved) return null;
+
+  const status = isSuccess || isExiting ? 'GIVEN' : dose.status;
 
   // LEFT: a colored left border — green if GIVEN, amber if DUE, red if MISSED
   let borderLeftColor = 'border-l-slate-300';
@@ -61,14 +75,22 @@ export function DoseCard({ dose, onMarkGiven, className = '' }: DoseCardProps) {
   const escalation = ((dose as any).escalation_level || 'routine').toLowerCase();
 
   const handleMarkGiven = async () => {
-    if (!onMarkGiven || isSubmitting || isExiting) return;
+    if (!onMarkGiven || isSubmitting || isSuccess || isExiting) return;
     setIsSubmitting(true);
-    setIsExiting(true);
-    await new Promise((resolve) => setTimeout(resolve, 300));
     try {
       await onMarkGiven(dose.id);
+      setIsSuccess(true);
+      setIsSubmitting(false);
+      // Show checkmark replacing button for ~400ms in green var(--status-given)
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      // Slide card out (translateY(-8px) + opacity 0, ~300ms, ease-out)
+      setIsExiting(true);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setIsRemoved(true);
+      onExitComplete?.(dose.id);
     } catch (err) {
       setIsExiting(false);
+      setIsSuccess(false);
       setIsSubmitting(false);
       throw err;
     }
@@ -101,10 +123,10 @@ export function DoseCard({ dose, onMarkGiven, className = '' }: DoseCardProps) {
   return (
     <>
       <div
-        className={`bg-white rounded-xl shadow-sm p-5 border border-slate-200/80 border-l-[6px] ${borderLeftColor} transition-all duration-300 space-y-4 ${
+        className={`bg-white rounded-xl shadow-sm p-5 border border-slate-200/80 border-l-[6px] ${borderLeftColor} transition-all duration-300 ease-out space-y-4 ${
           isExiting
-            ? 'opacity-0 -translate-x-6 scale-95 pointer-events-none'
-            : 'opacity-100 translate-x-0 scale-100'
+            ? 'opacity-0 -translate-y-2 pointer-events-none'
+            : 'opacity-100 translate-y-0'
         } ${className}`}
       >
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -165,50 +187,56 @@ export function DoseCard({ dose, onMarkGiven, className = '' }: DoseCardProps) {
                 type="button"
                 onClick={handleOpenFhir}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 px-2.5 py-1.5 rounded-lg border border-purple-200 transition-colors cursor-pointer"
-                title="Inspect HL7 FHIR Release 4 ABDM Immunization Record"
+                title="Inspect HL7 FHIR Release4 ABDM Immunization Record"
               >
                 <svg className="w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
                 </svg>
-                <span>FHIR R4</span>
+                <span>View FHIR record</span>
               </button>
             </div>
           )}
         </div>
 
-        {/* Record Dose button: full width, emerald, 48px tall. Only show if status is DUE */}
-        {status === 'DUE' && onMarkGiven && (
+        {/* Record Dose button: full width, emerald, 48px tall. Replaced by checkmark when recorded */}
+        {(dose.status === 'DUE' || isSuccess || isExiting) && onMarkGiven && (
           <div className="pt-2">
-            <button
-              type="button"
-              onClick={handleMarkGiven}
-              disabled={isSubmitting || isExiting}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg px-4 py-3 min-h-[48px] h-12 flex items-center justify-center gap-2 text-sm shadow-sm transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {isExiting ? (
-                <>
-                  <svg className="w-5 h-5 animate-bounce" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  <span>Recorded</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  <span>Record Dose</span>
-                </>
-              )}
-            </button>
+            {isSuccess || isExiting ? (
+              <div
+                className="w-full bg-[var(--status-given)] text-white font-bold rounded-lg px-4 py-3 min-h-[48px] h-12 flex items-center justify-center gap-2 text-base shadow-sm transition-all animate-fade-in"
+              >
+                <svg className="w-6 h-6 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span className="text-lg">✓</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleMarkGiven}
+                disabled={isSubmitting}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg px-4 py-3 min-h-[48px] h-12 flex items-center justify-center gap-2 text-sm shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    <span>Record Dose</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>
 
       {/* FHIR R4 Inspection Modal */}
       {showFhirModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 overflow-y-auto">
+          <div className="rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col" style={{ backgroundColor: '#ffffff' }}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse" />

@@ -91,3 +91,16 @@ body {
 .btn-primary:hover {
   background-color: #047857; /* emerald-700 */
 }
+
+@keyframes urgent-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-urgent-pulse {
+  animation: urgent-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

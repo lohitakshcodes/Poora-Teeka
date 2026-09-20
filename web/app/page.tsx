@@ -30,60 +30,104 @@ export default function LandingPage() {
       </header>
 
       {/* Main Hero & Problem Statement */}
-      <section className="py-16 sm:py-24 space-y-10">
-        <div className="space-y-6 max-w-3xl">
-          {/* 1. Huge stat alone on the screen */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-ink tracking-tight leading-[1.15]">
-            Nearly half the people who start rabies vaccination in India{' '}
-            <span className="text-brand underline decoration-brand/30 underline-offset-8">
-              never finish it.
-            </span>
-          </h1>
+      <section className="py-10 sm:py-16">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
+          {/* Left Column: Headline, subtext, banner, and CTA */}
+          <div className="space-y-8 flex-1 max-w-2xl">
+            <div className="space-y-5">
+              {/* 1. Huge stat alone on the screen in serif font */}
+              <h1
+                style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' }}
+                className="text-3xl sm:text-5xl md:text-6xl font-normal text-ink tracking-tight leading-[1.2]"
+              >
+                Nearly half the people who start rabies vaccination in India{' '}
+                <span className="text-brand underline decoration-brand/30 underline-offset-8">
+                  never finish it.
+                </span>
+              </h1>
 
-          {/* 2. The second half of the problem */}
-          <p className="text-xl sm:text-2xl text-ink-muted font-normal leading-relaxed">
-            And clinics throw away vaccine they&apos;ve already opened.
-          </p>
-        </div>
-
-        {/* 3. Small, quiet illustrative visual: 8-hour cold chain vial constraint (Motion Budget #5) */}
-        <div className="p-6 rounded-2xl bg-surface border border-border max-w-md shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-3 h-3 rounded-full bg-brand animate-ping opacity-75" />
-              <span className="text-sm font-bold text-ink">The 8-Hour Constraint</span>
+              {/* 2. The second half of the problem */}
+              <p className="text-xl sm:text-2xl text-ink-muted font-normal leading-relaxed">
+                And clinics throw away the vaccine they opened.
+              </p>
             </div>
-            <span className="text-xs font-mono bg-urgentBg text-urgent px-2 py-0.5 rounded font-bold border border-urgent/20">
-              Must discard after 8h
-            </span>
+
+            {/* 3. Paper Card / Banner SVG from docs */}
+            <div className="max-w-xl">
+              <img
+                src="/banner.svg"
+                alt="Poora Teeka Vaccine Completion & Batching System"
+                className="w-full rounded-2xl border border-border/80 shadow-sm bg-white"
+              />
+            </div>
+
+            {/* 4. Call to action */}
+            <div className="pt-2">
+              <Link
+                href="/app"
+                className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl bg-brand text-white text-base font-bold hover:bg-emerald-800 transition-all shadow-sm active:scale-[0.99]"
+              >
+                <span>Open clinic dashboard →</span>
+              </Link>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-ink-muted font-medium">
-              <span>Opened 09:00 AM</span>
-              <span className="text-urgent font-mono font-semibold">Expires 05:00 PM</span>
+          {/* Right Column: Addition A - Compact Asymmetric Photo Mosaic (hidden md:grid, ~280px wide) */}
+          <div className="hidden md:grid grid-cols-3 gap-2.5 w-[280px] shrink-0 pt-2" aria-hidden="true">
+            {/* Column 1 */}
+            <div className="space-y-2.5">
+              <img
+                src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80"
+                alt=""
+                className="w-full h-32 object-cover rounded-2xl shadow-xs border border-border/60"
+                loading="lazy"
+              />
+              <img
+                src="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=300&q=80"
+                alt=""
+                className="w-full h-44 object-cover rounded-2xl shadow-xs border border-border/60"
+                loading="lazy"
+              />
             </div>
-            <div className="w-full bg-surfaceSunken h-2.5 rounded-full overflow-hidden border border-border">
-              <div className="bg-gradient-to-r from-brand to-urgent h-full w-3/4 rounded-full" />
+
+            {/* Column 2 */}
+            <div className="space-y-2.5 pt-4">
+              <img
+                src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=300&q=80"
+                alt=""
+                className="w-full h-44 object-cover rounded-2xl shadow-xs border border-border/60"
+                loading="lazy"
+              />
+              <img
+                src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=300&q=80"
+                alt=""
+                className="w-full h-28 object-cover rounded-2xl shadow-xs border border-border/60"
+                loading="lazy"
+              />
+            </div>
+
+            {/* Column 3 */}
+            <div className="space-y-2.5 pt-1">
+              <img
+                src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=300&q=80"
+                alt=""
+                className="w-full h-28 object-cover rounded-2xl shadow-xs border border-border/60"
+                loading="lazy"
+              />
+              <img
+                src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=300&q=80"
+                alt=""
+                className="w-full h-36 object-cover rounded-2xl shadow-xs border border-border/60"
+                loading="lazy"
+              />
+              <img
+                src="https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=300&q=80"
+                alt=""
+                className="w-full h-24 object-cover rounded-2xl shadow-xs border border-border/60"
+                loading="lazy"
+              />
             </div>
           </div>
-
-          <p className="text-xs text-ink-muted leading-relaxed">
-            Poora Teeka automatically groups intradermal doses into synchronized appointment batches and dispatches localized WhatsApp and voice reminders so patients finish every shot and no vial is wasted.
-          </p>
-        </div>
-
-        {/* 4. Call to action */}
-        <div className="pt-2">
-          <Link
-            href="/app"
-            className="inline-flex items-center gap-3 px-6 py-3.5 rounded-xl bg-brand text-white text-base font-bold hover:bg-emerald-800 transition-all shadow-sm active:scale-[0.99]"
-          >
-            <span>Open the clinic dashboard</span>
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
-          </Link>
         </div>
       </section>
 

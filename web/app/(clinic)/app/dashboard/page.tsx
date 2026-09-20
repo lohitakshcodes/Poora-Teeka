@@ -286,11 +286,7 @@ export default function DashboardPage() {
               {sequences.map((step) => (
                 <FunnelBar
                   key={step.seq}
-                  step={{
-                    seq: step.seq,
-                    given: step.given,
-                    scheduled: step.scheduled,
-                  }}
+                  step={step}
                 />
               ))}
             </div>

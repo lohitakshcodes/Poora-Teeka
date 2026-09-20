@@ -27,6 +27,48 @@ export default function RegisterPage() {
   const [registeredPatient, setRegisteredPatient] = useState<Patient | null>(null);
   const [showToast, setShowToast] = useState(false);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('demoBcg') === 'true') {
+        setName('Aarav Newborn');
+        setPhoneRaw('9876543210');
+        setProtocolId('IN-BCG-v1');
+      }
+      if (params.get('demoResult') === 'bcg') {
+        setRegisteredPatient({
+          id: '4313cc9a-b877-4172-81d0-99b02bfdb312',
+          name: 'Aarav Newborn',
+          phoneE164: '+919876543210',
+        });
+        setCreatedCourse({
+          id: '3fd90fa1-7812-4514-98aa-538f171280f2',
+          patientId: '4313cc9a-b877-4172-81d0-99b02bfdb312',
+          protocolId: 'IN-BCG-v1',
+          route: 'ID',
+          day0: new Date().toISOString().split('T')[0],
+          createdAt: new Date().toISOString(),
+          doses: [
+            {
+              id: '6e20af17-6b8f-4869-addb-ecdc8547e426',
+              seq: 1,
+              totalDoses: 1,
+              dueDate: new Date().toISOString().split('T')[0],
+              status: 'DUE',
+              version: 1,
+              slotStart: null,
+              patient: {
+                id: '4313cc9a-b877-4172-81d0-99b02bfdb312',
+                name: 'Aarav Newborn',
+                phoneE164: '+919876543210',
+              },
+            },
+          ],
+        });
+      }
+    }
+  }, []);
+
   // Clean phone input
   const cleanDigits = (val: string) => val.replace(/\D/g, '');
   const phoneDigits = cleanDigits(phoneRaw);
@@ -208,6 +250,9 @@ export default function RegisterPage() {
 
   const getDoseDayNumber = (seq: number, totalDoses: number) => {
     const proto = PROTOCOLS.find((p) => p.id === createdCourse?.protocolId || p.dbId === createdCourse?.protocolId);
+    if (proto?.id === 'IN-BCG-v1' || totalDoses === 1) {
+      return 0;
+    }
     if (proto?.id === 'IN-HEPB-IM-v1') {
       switch (seq) {
         case 1: return 0;

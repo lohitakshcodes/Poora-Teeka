@@ -1,28 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
 :root {
-  /* Base neutrals — most of the UI lives here */
-  --ink: #16211b;           /* near-black, slightly warm, for primary text */
-  --ink-muted: #5b6b62;     /* secondary text */
+  /* Base neutrals — clean, high-contrast clinical slate palette */
+  --ink: #0f172a;           /* slate-900 */
+  --ink-muted: #64748b;     /* slate-500 */
   --surface: #ffffff;
-  --surface-sunken: #f4f7f5; /* card backgrounds, subtle recess */
-  --border: #dfe6e1;
+  --surface-sunken: #f8fafc; /* slate-50 */
+  --border: #e2e8f0;        /* slate-200 */
 
-  /* One calm brand color — trust, clinical, not sterile-cold */
-  --brand: #0f6b5c;         /* deep teal-green */
-  --brand-soft: #e3f1ec;    /* tint for backgrounds/badges */
+  /* Brand Emerald */
+  --brand: #059669;         /* emerald-600 */
+  --brand-soft: #ecfdf5;    /* emerald-50 */
 
-  /* Status colors — used ONLY for their meaning, never decoratively */
-  --status-scheduled: #8a94a6;   /* gray */
-  --status-due: #1d6fd6;         /* blue */
-  --status-given: #1a8a5e;       /* green */
-  --status-missed: #c23b3b;      /* red — reserved, see below */
-  --status-recovered: #c98a1f;   /* amber */
+  /* Status Colors */
+  --status-scheduled: #94a3b8;
+  --status-due: #f59e0b;         /* amber-500 */
+  --status-given: #10b981;       /* emerald-500 */
+  --status-missed: #ef4444;      /* red-500 */
+  --status-recovered: #f59e0b;
 
-  /* The one urgent red in the whole app, earned by real stakes */
-  --urgent: #d32f2f;
-  --urgent-bg: #fdecec;
+  --urgent: #dc2626;
+  --urgent-bg: #fef2f2;
 }
 
 @theme {
@@ -55,10 +55,39 @@
 }
 
 body {
-  background-color: var(--surface-sunken);
-  color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'DejaVu Sans', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Global utility classes per spec */
+.card-standard {
+  background-color: #ffffff;
+  border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
+  padding: 1.25rem; /* p-5 */
+  border: 1px solid #e2e8f0;
+}
+
+.btn-primary {
+  background-color: #059669; /* emerald-600 */
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 0.5rem; /* rounded-lg */
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.btn-primary:hover {
+  background-color: #047857; /* emerald-700 */
 }

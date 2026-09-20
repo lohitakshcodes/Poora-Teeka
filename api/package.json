@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
+    "test": "tsx --test 'test/**/*.test.ts'",
     "spike:whatsapp": "tsx spikes/whatsapp-test.ts",
     "spike:polly": "tsx spikes/polly-test.ts",
     "spike:concurrency": "tsx spikes/concurrency-test.ts",

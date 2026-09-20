@@ -9,4 +9,5 @@ jobs:
         with:
           node-version: 22
       - run: cd api && npm install && npx tsc --noEmit
+      - run: cd api && npm test
       - run: cd web && npm install && npx tsc --noEmit

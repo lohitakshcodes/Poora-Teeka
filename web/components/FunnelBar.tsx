@@ -7,37 +7,34 @@ interface FunnelBarProps {
   className?: string;
 }
 
-export function FunnelBar({ step, maxScheduled, className = '' }: FunnelBarProps) {
-  const percentage = step.scheduled > 0 ? Math.round((step.given / step.scheduled) * 100) : 0;
-  const relativeWidth = maxScheduled && maxScheduled > 0
-    ? Math.min(100, Math.round((step.given / maxScheduled) * 100))
-    : percentage;
+export function FunnelBar({ step, className = '' }: FunnelBarProps) {
+  const percentage = step.scheduled > 0
+    ? Math.round((step.given / step.scheduled) * 100)
+    : 0;
 
   return (
-    <div className={`space-y-1.5 ${className}`}>
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-ink">Dose {step.seq}</span>
-          <span className="text-xs text-ink-muted">
-            ({step.given} completed of {step.scheduled} scheduled)
-          </span>
-        </div>
-        <span className="font-mono font-bold text-xs text-brand">
-          {percentage}% completion
-        </span>
-      </div>
+    <div className={`flex items-center gap-3 ${className}`}>
+      {/* Label: "Dose 1", "Dose 2" etc on the left */}
+      <span className="w-20 font-semibold text-slate-800 text-sm shrink-0">
+        Dose {step.seq}
+      </span>
 
-      {/* Horizontal Bar */}
-      <div className="h-3 w-full bg-surfaceSunken rounded-full overflow-hidden border border-border flex">
+      {/* Bar: bg-emerald-500 width proportional to completion %, bg-slate-200 for remainder, height: h-6, rounded-full */}
+      <div className="flex-1 h-6 bg-slate-200 rounded-full overflow-hidden">
         <div
-          className="h-full bg-brand rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${relativeWidth}%` }}
+          className="h-6 bg-emerald-500 rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
           role="progressbar"
-          aria-valuenow={step.given}
+          aria-valuenow={percentage}
           aria-valuemin={0}
-          aria-valuemax={step.scheduled}
+          aria-valuemax={100}
         />
       </div>
+
+      {/* Percentage text on the right */}
+      <span className="w-14 text-right font-mono font-bold text-sm text-slate-800 shrink-0">
+        {percentage}%
+      </span>
     </div>
   );
 }

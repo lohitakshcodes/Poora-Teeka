@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 410" width="1100" height="410" role="img" aria-label="Animated diagram comparing one vial used by a single patient vs the same vial shared by five patients within its eight-hour window">
+  <defs>
+    <pattern id="anim-waste" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#EF4444" stroke-width="2" opacity="0.6"/>
+    </pattern>
+
+    <linearGradient id="primary-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <linearGradient id="cursor-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#818CF8" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.2"/>
+    </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <style>
+      @keyframes sweep {
+        0% { transform: translateX(0px); opacity: 0.2; }
+        5% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateX(900px); opacity: 0.2; }
+      }
+
+      @keyframes pulse-live {
+        0%, 100% { transform: scale(1); opacity: 0.9; }
+        50% { transform: scale(1.35); opacity: 0.4; }
+      }
+
+      @keyframes lightup-1 { 0%, 5% { opacity: 0.4; } 10%, 100% { opacity: 1; } }
+      @keyframes lightup-2 { 0%, 25% { opacity: 0.4; } 30%, 100% { opacity: 1; } }
+      @keyframes lightup-3 { 0%, 45% { opacity: 0.4; } 50%, 100% { opacity: 1; } }
+      @keyframes lightup-4 { 0%, 65% { opacity: 0.4; } 70%, 100% { opacity: 1; } }
+      @keyframes lightup-5 { 0%, 85% { opacity: 0.4; } 90%, 100% { opacity: 1; } }
+
+      .time-cursor {
+        animation: sweep 8s ease-in-out infinite;
+      }
+
+      .pulse-dot {
+        transform-origin: 940px 48px;
+        animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      .slot-1 { animation: lightup-1 8s infinite; }
+      .slot-2 { animation: lightup-2 8s infinite; }
+      .slot-3 { animation: lightup-3 8s infinite; }
+      .slot-4 { animation: lightup-4 8s infinite; }
+      .slot-5 { animation: lightup-5 8s infinite; }
+    </style>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1100" height="410" rx="10" fill="#0B1311"/>
+  <rect x="0.5" y="0.5" width="1099" height="409" rx="10" fill="none" stroke="#1E2E28" stroke-width="1.5"/>
+
+  <!-- Live Operational Badge -->
+  <g>
+    <rect x="880" y="32" width="170" height="32" rx="16" fill="#13231E" stroke="#10B981" stroke-width="1" stroke-opacity="0.4"/>
+    <circle class="pulse-dot" cx="900" cy="48" r="5" fill="#10B981" filter="url(#glow)"/>
+    <circle cx="900" cy="48" r="4" fill="#34D399"/>
+    <text x="914" y="53" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#A7F3D0" letter-spacing="0.5">LIVE · AP-SOUTH-1</text>
+  </g>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" fill="#E2E8F0">
+    <!-- Header -->
+    <text x="48" y="52" font-family="Georgia, 'Times New Roman', serif" font-size="25" fill="#F8FAFC" font-weight="600">The 8-Hour Vial Window: Waste vs. Coordination</text>
+    <text x="48" y="78" font-size="13.5" fill="#94A3B8">Reconstituted intradermal rabies vaccine yields 5 patient doses (0.2 mL each) but expires after 8 hours.</text>
+
+    <!-- Scenario 1: Uncoordinated Walk-in -->
+    <g transform="translate(0, 10)">
+      <text x="48" y="125" font-size="14" font-weight="600" fill="#F1F5F9">Naive Operation — Uncoordinated Walk-ins</text>
+      <text x="360" y="125" font-size="12" fill="#64748B">(1 dose administered, 4 discarded at shift close)</text>
+      
+      <!-- Container Track -->
+      <rect x="48" y="138" width="900" height="38" rx="6" fill="#15221D" stroke="#253830" stroke-width="1"/>
+      
+      <!-- Used Dose -->
+      <rect x="48" y="138" width="180" height="38" rx="6" fill="#D97706"/>
+      <text x="138" y="162" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#FFFBEB">Dose 1 (0.2 mL)</text>
+      
+      <!-- Discarded Track -->
+      <rect x="232" y="138" width="716" height="38" rx="6" fill="url(#anim-waste)"/>
+      <text x="968" y="162" font-size="13.5" font-weight="600" fill="#F87171">80% Wasted (4 doses)</text>
+    </g>
+
+    <!-- Scenario 2: Batched Coordination -->
+    <g transform="translate(0, 30)">
+      <text x="48" y="215" font-size="14" font-weight="600" fill="#34D399">Poora Teeka — Batched 30-Minute Windows</text>
+      <text x="360" y="215" font-size="12" fill="#64748B">(5 patients scheduled into 1 vial; 20% walk-in buffer preserved)</text>
+      
+      <!-- Container Track -->
+      <rect x="48" y="228" width="900" height="38" rx="6" fill="#15221D" stroke="#253830" stroke-width="1"/>
+      
+      <!-- 5 Synchronized Patient Doses -->
+      <g class="slot-1">
+        <rect x="48" y="228" width="176" height="38" rx="6" fill="#059669"/>
+        <text x="136" y="252" text-anchor="middle" font-size="12" font-weight="bold" fill="#ECFDF5">Patient 1 (9:00 AM)</text>
+      </g>
+      <g class="slot-2">
+        <rect x="228" y="228" width="176" height="38" rx="6" fill="#059669"/>
+        <text x="316" y="252" text-anchor="middle" font-size="12" font-weight="bold" fill="#ECFDF5">Patient 2 (10:30 AM)</text>
+      </g>
+      <g class="slot-3">
+        <rect x="408" y="228" width="176" height="38" rx="6" fill="#059669"/>
+        <text x="496" y="252" text-anchor="middle" font-size="12" font-weight="bold" fill="#ECFDF5">Patient 3 (12:00 PM)</text>
+      </g>
+      <g class="slot-4">
+        <rect x="588" y="228" width="176" height="38" rx="6" fill="#059669"/>
+        <text x="676" y="252" text-anchor="middle" font-size="12" font-weight="bold" fill="#ECFDF5">Patient 4 (1:30 PM)</text>
+      </g>
+      <g class="slot-5">
+        <rect x="768" y="228" width="180" height="38" rx="6" fill="#10B981" filter="url(#glow)"/>
+        <text x="858" y="252" text-anchor="middle" font-size="12" font-weight="bold" fill="#ECFDF5">Patient 5 (3:30 PM)</text>
+      </g>
+      
+      <text x="968" y="252" font-size="13.5" font-weight="bold" fill="#34D399">0% Wasted (5/5)</text>
+    </g>
+
+    <!-- Moving Time Cursor (Sweeping over 8 hours) -->
+    <g class="time-cursor" transform="translate(48, 0)">
+      <line x1="0" y1="125" x2="0" y2="330" stroke="url(#cursor-grad)" stroke-width="2.5" stroke-dasharray="3 3"/>
+      <circle cx="0" cy="125" r="4" fill="#38BDF8" filter="url(#glow)"/>
+      <circle cx="0" cy="330" r="4" fill="#38BDF8" filter="url(#glow)"/>
+    </g>
+
+    <!-- Timeline Axis -->
+    <line x1="48" y1="330" x2="948" y2="330" stroke="#334155" stroke-width="1.5"/>
+    <g font-size="12" fill="#64748B" font-weight="500">
+      <circle cx="48" cy="330" r="3" fill="#64748B"/>
+      <text x="48" y="352">9:00 AM (Open)</text>
+
+      <circle cx="273" cy="330" r="3" fill="#64748B"/>
+      <text x="273" y="352" text-anchor="middle">11:00 AM</text>
+
+      <circle cx="498" cy="330" r="3" fill="#64748B"/>
+      <text x="498" y="352" text-anchor="middle">1:00 PM</text>
+
+      <circle cx="723" cy="330" r="3" fill="#64748B"/>
+      <text x="723" y="352" text-anchor="middle">3:00 PM</text>
+
+      <circle cx="948" cy="330" r="3" fill="#64748B"/>
+      <text x="948" y="352" text-anchor="end">5:00 PM (8h Limit)</text>
+    </g>
+
+    <!-- Footer Note -->
+    <text x="48" y="386" font-size="12" fill="#475569">Clinical invariant: Dose dates are fixed by WHO/NCDC protocol. Only arrival hour is batched by Poora Teeka.</text>
+  </g>
+</svg>

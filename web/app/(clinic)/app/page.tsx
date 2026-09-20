@@ -53,6 +53,7 @@ export default function TodayPage() {
         version: raw.version ?? 1,
         slotStart: raw.slotStart || raw.slot_start || null,
         route: (raw.route || (raw.protocol_id === 'essen_im' ? 'IM' : 'ID')) as 'ID' | 'IM',
+        escalation_level: raw.escalation_level || raw.escalationLevel || undefined,
         patient: raw.patient ?? {
           id: raw.patient_id || '',
           name: raw.patient_name || 'Patient',

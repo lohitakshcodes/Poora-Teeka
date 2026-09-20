@@ -15,6 +15,129 @@ export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
   try {
+    const httpMethod =
+      event.requestContext?.http?.method?.toUpperCase() ||
+      (event as any).httpMethod?.toUpperCase() ||
+      'POST';
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // 1. GET /patients/status/{token} - Public Patient Portal
+    // ──────────────────────────────────────────────────────────────────────────
+    const isStatusRoute =
+      httpMethod === 'GET' ||
+      event.rawPath?.includes('/status/') ||
+      event.rawPath?.startsWith('/patients/status') ||
+      event.requestContext?.http?.path?.includes('/status/');
+
+    if (isStatusRoute) {
+      let token = event.pathParameters?.token;
+      if (!token && event.rawPath) {
+        const parts = event.rawPath.split('/status/');
+        if (parts.length > 1) {
+          token = parts[1].split('/')[0].split('?')[0];
+        }
+      }
+
+      if (!token) {
+        return {
+          statusCode: 400,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          body: JSON.stringify({ error: 'Status token is required in path: /patients/status/{token}' }),
+        };
+      }
+
+      // Query patient and clinic details by unique status_token
+      const patientRes = await query(
+        `SELECT
+           p.id AS patient_id,
+           p.name AS patient_name,
+           p.phone_e164,
+           p.language AS patient_language,
+           p.status_token,
+           ctr.id AS centre_id,
+           ctr.name AS centre_name,
+           ctr.city AS centre_city,
+           c.id AS course_id,
+           c.protocol_id,
+           proto.label AS protocol_label,
+           proto.vaccine_id,
+           proto.route
+         FROM patients p
+         JOIN centres ctr ON ctr.id = p.centre_id
+         LEFT JOIN courses c ON c.patient_id = p.id
+         LEFT JOIN protocols proto ON proto.id = c.protocol_id
+         WHERE p.status_token = $1
+         ORDER BY c.created_at DESC
+         LIMIT 1`,
+        [token]
+      );
+
+      if (patientRes.rows.length === 0) {
+        return {
+          statusCode: 404,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          body: JSON.stringify({ error: `No patient found for status token: '${token}'` }),
+        };
+      }
+
+      const patient = patientRes.rows[0];
+
+      // Query scheduled doses for this patient course
+      let doses: any[] = [];
+      if (patient.course_id) {
+        const dosesRes = await query(
+          `SELECT
+             d.id,
+             d.seq,
+             to_char(d.due_date, 'YYYY-MM-DD') AS due_date,
+             d.status,
+             d.given_at,
+             d.slot_start
+           FROM doses d
+           WHERE d.course_id = $1
+           ORDER BY d.seq ASC`,
+          [patient.course_id]
+        );
+        doses = dosesRes.rows;
+      }
+
+      const totalDoses = doses.length || 4;
+      const dosesGiven = doses.filter((d) => d.status === 'GIVEN').length;
+      const nextDose = doses.find((d) => d.status === 'DUE' || d.status === 'SCHEDULED' || d.status === 'MISSED');
+      const nextDueDate = nextDose ? nextDose.due_date : null;
+      const nextDoseSeq = nextDose ? nextDose.seq : null;
+      const firstName = patient.patient_name ? patient.patient_name.trim().split(' ')[0] : 'Patient';
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-cache',
+        },
+        body: JSON.stringify({
+          firstName,
+          fullName: patient.patient_name,
+          language: patient.patient_language || 'hi',
+          protocolLabel: patient.protocol_label || 'Vaccination Course',
+          vaccineId: patient.vaccine_id || 'RABIES',
+          dosesGiven,
+          dosesTotal: totalDoses,
+          nextDueDate,
+          nextDoseSeq,
+          centre: {
+            id: patient.centre_id,
+            name: patient.centre_name,
+            city: patient.centre_city,
+          },
+          doses,
+        }),
+      };
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // 2. POST /patients - Create Patient Record
+    // ──────────────────────────────────────────────────────────────────────────
     if (!event.body) {
       return {
         statusCode: 400,
@@ -121,7 +244,7 @@ export const handler = async (
       body: JSON.stringify(patientRow),
     };
   } catch (err: any) {
-    console.error('Error in POST /patients:', err);
+    console.error('Error in /patients handler:', err);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },

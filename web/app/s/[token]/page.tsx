@@ -1,48 +1,167 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { LanguageChip, type SupportedLanguage } from '@/components/LanguageChip';
+import { apiFetch } from '@/lib/api';
 
-const translations = {
-  en: {
-    greeting: 'Hi Ramesh 👋',
-    nextDosePrompt: 'Your next rabies vaccine dose is on',
-    dateStr: 'September 22',
-    progress: 'Dose 2 of 4 complete',
-    centreName: 'Civil Hospital Rabies Clinic #1, Pune',
-    directions: 'Get directions →',
-    reassurance: 'The vaccine will be ready for you.',
-    help: 'Need help or missed your date? Call the clinic helpline: 1800-209-4357',
-  },
-  hi: {
-    greeting: 'नमस्ते रमेश 👋',
-    nextDosePrompt: 'आपकी अगली रेबीज वैक्सीन की खुराक है',
-    dateStr: '२२ सितंबर',
-    progress: '४ में से २ खुराक पूरी हुईं',
-    centreName: 'सिविल अस्पताल रेबीज क्लीनिक #१, पुणे',
-    directions: 'रास्ता देखें →',
-    reassurance: 'वैक्सीन आपके लिए तैयार रखी जाएगी।',
-    help: 'मदद चाहिए या तारीख छूट गई? क्लीनिक हेल्पलाइन पर कॉल करें: 1800-209-4357',
-  },
-  mr: {
-    greeting: 'नमस्कार रमेश 👋',
-    nextDosePrompt: 'तुमचा पुढील रेबीज लस डोस या दिवशी आहे',
-    dateStr: '२२ सप्टेंबर',
-    progress: '४ पैकी २ डोस पूर्ण झाले',
-    centreName: 'सिव्हिल हॉस्पिटल रेबीज क्लिनिक #१, पुणे',
-    directions: 'मार्ग पहा →',
-    reassurance: 'लस तुमच्यासाठी तयार ठेवली जाईल.',
-    help: 'मदत हवी आहे किंवा तारीख चुकली? क्लिनिक हेल्पलाइनवर कॉल करा: 1800-209-4357',
-  },
-};
+interface PatientStatusResponse {
+  firstName: string;
+  fullName: string;
+  language: 'hi' | 'mr' | 'en';
+  protocolLabel: string;
+  vaccineId: string;
+  dosesGiven: number;
+  dosesTotal: number;
+  nextDueDate: string | null;
+  nextDoseSeq: number | null;
+  centre: {
+    id: string;
+    name: string;
+    city: string;
+  };
+  doses: Array<{
+    id: string;
+    seq: number;
+    due_date: string;
+    status: string;
+  }>;
+}
+
+// Convert English digits to Devanagari digits (0-9 -> ०-९)
+function toDevanagariDigits(str: string | number): string {
+  const devanagariNums = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return String(str).replace(/[0-9]/g, (w) => devanagariNums[+w]);
+}
+
+// Format YYYY-MM-DD into a localized friendly date
+function formatLocalizedDate(dateStr: string | null, lang: SupportedLanguage): string {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const dateObj = new Date(Date.UTC(year, month - 1, day));
+
+  const monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthsHi = ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
+  const monthsMr = ['जानेवारी', 'फेब्रुवारी', 'मार्च', 'एप्रिल', 'मे', 'जून', 'जुलै', 'ऑगस्ट', 'सप्टेंबर', 'ऑक्टोबर', 'नोव्हेंबर', 'डिसेंबर'];
+
+  const mIdx = dateObj.getUTCMonth();
+  const d = dateObj.getUTCDate();
+
+  if (lang === 'hi') {
+    return `${toDevanagariDigits(d)} ${monthsHi[mIdx]}`;
+  }
+  if (lang === 'mr') {
+    return `${toDevanagariDigits(d)} ${monthsMr[mIdx]}`;
+  }
+  return `${monthsEn[mIdx]} ${d}`;
+}
 
 export default function PatientStatusPage() {
-  const [lang, setLang] = useState<SupportedLanguage>('en');
+  const params = useParams();
+  const token = params?.token as string;
+
+  const [data, setData] = useState<PatientStatusResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lang, setLang] = useState<SupportedLanguage>('hi');
+
+  useEffect(() => {
+    if (!token) return;
+
+    let isMounted = true;
+    async function loadStatus() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await apiFetch<PatientStatusResponse>(`/patients/status/${token}`);
+        if (isMounted) {
+          setData(res);
+          if (res.language && ['hi', 'mr', 'en'].includes(res.language)) {
+            setLang(res.language as SupportedLanguage);
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          console.error('Failed to load patient status:', err);
+          setError(err.message || 'Record not found');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
+  // Derived display values
+  const firstName = data?.firstName || 'Patient';
+  const dosesGiven = data?.dosesGiven ?? 0;
+  const dosesTotal = data?.dosesTotal ?? 4;
+  const isComplete = dosesGiven >= dosesTotal && dosesTotal > 0;
+  const pct = Math.min(100, Math.round((dosesGiven / Math.max(1, dosesTotal)) * 100));
+  const nextDateFormatted = data?.nextDueDate ? formatLocalizedDate(data.nextDueDate, lang) : '';
+  const centreName = data?.centre ? `${data.centre.name}, ${data.centre.city}` : 'Anti-Rabies Clinic';
+  const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(centreName)}`;
+
+  // Translations with dynamic patient values
+  const translations = {
+    en: {
+      greeting: `Hi ${firstName} 👋`,
+      prompt: isComplete
+        ? 'Your vaccination course is fully complete! 🎉'
+        : 'Your next rabies vaccine dose is on',
+      dateStr: nextDateFormatted || 'Scheduled soon',
+      progress: isComplete
+        ? `All ${dosesTotal} of ${dosesTotal} doses complete`
+        : `Dose ${dosesGiven} of ${dosesTotal} complete`,
+      reassurance: isComplete
+        ? 'You are protected against rabies. Stay safe!'
+        : 'The vaccine will be ready for you.',
+      directions: 'Get directions →',
+      help: 'Need help or missed your date? Call the clinic helpline: 1800-209-4357',
+    },
+    hi: {
+      greeting: `नमस्ते ${firstName} 👋`,
+      prompt: isComplete
+        ? 'आपका टीकाकरण कोर्स सफलतापूर्वक पूरा हो चुका है! 🎉'
+        : 'आपकी अगली रेबीज वैक्सीन की खुराक है',
+      dateStr: nextDateFormatted || 'जल्द निर्धारित',
+      progress: isComplete
+        ? `सभी ${toDevanagariDigits(dosesTotal)} खुराकें पूरी हुईं`
+        : `${toDevanagariDigits(dosesTotal)} में से ${toDevanagariDigits(dosesGiven)} खुराक पूरी हुईं`,
+      reassurance: isComplete
+        ? 'आप रेबीज से सुरक्षित हैं। सुरक्षित रहें!'
+        : 'वैक्सीन आपके लिए तैयार रखी जाएगी।',
+      directions: 'रास्ता देखें →',
+      help: 'मदद चाहिए या तारीख छूट गई? क्लीनिक हेल्पलाइन पर कॉल करें: 1800-209-4357',
+    },
+    mr: {
+      greeting: `नमस्कार ${firstName} 👋`,
+      prompt: isComplete
+        ? 'आपला लसीकरण कोर्स पूर्ण झाला आहे! 🎉'
+        : 'तुमचा पुढील रेबीज लस डोस या दिवशी आहे',
+      dateStr: nextDateFormatted || 'लवकरच नियोजित',
+      progress: isComplete
+        ? `सर्व ${toDevanagariDigits(dosesTotal)} डोस पूर्ण झाले`
+        : `${toDevanagariDigits(dosesTotal)} पैकी ${toDevanagariDigits(dosesGiven)} डोस पूर्ण झाले`,
+      reassurance: isComplete
+        ? 'तुम्ही रेबीजपासून सुरक्षित आहात. सुरक्षित रहा!'
+        : 'लस तुमच्यासाठी तयार ठेवली जाईल.',
+      directions: 'मार्ग पहा →',
+      help: 'मदत हवी आहे किंवा तारीख चुकली? क्लिनिक हेल्पलाइनवर कॉल करा: 1800-209-4357',
+    },
+  };
+
   const t = translations[lang];
 
   return (
     <main className="min-h-screen bg-surfaceSunken flex flex-col justify-between p-6 sm:p-10 max-w-lg mx-auto text-ink font-sans">
-      {/* Top Bar: Language Switcher */}
+      {/* Top Bar: Brand & Language Switcher */}
       <div className="flex items-center justify-between pb-6 border-b border-border/70">
         <span className="text-xs font-bold text-brand uppercase tracking-wider font-mono">
           Poora Teeka
@@ -50,67 +169,111 @@ export default function PatientStatusPage() {
         <LanguageChip activeLang={lang} onChangeLang={setLang} />
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="my-auto py-12 space-y-6 animate-pulse">
+          <div className="h-9 bg-slate-200 rounded-lg w-3/4" />
+          <div className="h-6 bg-slate-200 rounded-lg w-1/2" />
+          <div className="h-28 bg-surface rounded-2xl border border-border p-5" />
+          <div className="h-20 bg-surface rounded-xl border border-border p-4" />
+        </div>
+      )}
+
+      {/* Error / Not Found State */}
+      {!loading && error && (
+        <div className="my-auto py-12 space-y-6 text-center">
+          <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-xl font-bold">
+            !
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-ink">Vaccination Record Not Found</h1>
+            <p className="text-sm text-ink-muted">
+              We couldn&apos;t find an active vaccination schedule for this link. Please check the SMS or WhatsApp message sent to you.
+            </p>
+          </div>
+          <div className="p-4 rounded-xl bg-surface border border-border text-xs text-ink-muted">
+            <p>Need assistance? Contact your primary anti-rabies clinic helpline.</p>
+          </div>
+        </div>
+      )}
+
       {/* Main Warm Patient Card */}
-      <div className="my-auto py-8 space-y-6">
-        {/* 1. Patient's first name only, large, friendly */}
-        <div className="space-y-2">
-          <h1 className="text-3xl sm:text-4xl font-black text-ink tracking-tight">
-            {t.greeting}
-          </h1>
-          {/* 2. One clear, calm sentence */}
-          <p className="text-lg sm:text-xl text-ink-muted leading-snug">
-            {t.nextDosePrompt}{' '}
-            <strong className="text-brand font-bold">{t.dateStr}</strong>.
-          </p>
-        </div>
-
-        {/* 3. Simple visual of progress — 4 dots */}
-        <div className="p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-3">
-          <div className="flex items-center justify-between text-sm font-semibold">
-            <span className="text-ink">{t.progress}</span>
-            <span className="text-xs font-mono text-brand font-bold">50%</span>
+      {!loading && !error && (
+        <div className="my-auto py-8 space-y-6">
+          {/* 1. Patient's first name only, large, friendly */}
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-black text-ink tracking-tight">
+              {t.greeting}
+            </h1>
+            {/* 2. One clear, calm sentence */}
+            <p className="text-lg sm:text-xl text-ink-muted leading-snug">
+              {t.prompt}{' '}
+              {!isComplete && (
+                <strong className="text-brand font-bold">{t.dateStr}</strong>
+              )}
+              {!isComplete && '.'}
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4].map((step) => (
-              <div
-                key={step}
-                className={`h-3 flex-1 rounded-full transition-colors ${
-                  step <= 2 ? 'bg-brand' : 'bg-surfaceSunken border border-border'
-                }`}
-              />
-            ))}
-          </div>
-        </div>
+          {/* 3. Simple visual of progress dots */}
+          <div className="p-5 rounded-2xl bg-surface border border-border shadow-xs space-y-3">
+            <div className="flex items-center justify-between text-sm font-semibold">
+              <span className="text-ink">{t.progress}</span>
+              <span className="text-xs font-mono text-brand font-bold">
+                {lang === 'hi' || lang === 'mr' ? toDevanagariDigits(pct) : pct}%
+              </span>
+            </div>
 
-        {/* 4. Centre Name and Directions */}
-        <div className="p-4 rounded-xl bg-surface border border-border space-y-2 text-sm">
-          <div className="flex items-start gap-2.5">
-            <svg className="w-5 h-5 text-brand shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
-            <div>
-              <p className="font-semibold text-ink">{t.centreName}</p>
-              <a
-                href="https://maps.google.com/?q=Civil+Hospital+Pune"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-bold text-brand hover:underline inline-block mt-1"
-              >
-                {t.directions}
-              </a>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: Math.max(1, dosesTotal) }).map((_, idx) => {
+                const isGiven = idx < dosesGiven;
+                return (
+                  <div
+                    key={idx}
+                    className={`h-3 flex-1 rounded-full transition-colors ${
+                      isGiven ? 'bg-brand' : 'bg-surfaceSunken border border-border'
+                    }`}
+                  />
+                );
+              })}
             </div>
           </div>
-        </div>
 
-        {/* 5. Reassuring line */}
-        <div className="p-4 rounded-xl bg-brandSoft/80 border border-brand/20 text-center">
-          <p className="text-sm font-semibold text-brand">
-            &ldquo;{t.reassurance}&rdquo;
-          </p>
+          {/* 4. Centre Name and Directions */}
+          <div className="p-4 rounded-xl bg-surface border border-border space-y-2 text-sm">
+            <div className="flex items-start gap-2.5">
+              <svg
+                className="w-5 h-5 text-brand shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+              <div>
+                <p className="font-semibold text-ink">{centreName}</p>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-bold text-brand hover:underline inline-block mt-1"
+                >
+                  {t.directions}
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Reassuring line */}
+          <div className="p-4 rounded-xl bg-brandSoft/80 border border-brand/20 text-center">
+            <p className="text-sm font-semibold text-brand">
+              &ldquo;{t.reassurance}&rdquo;
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Footer / Helpline */}
       <footer className="pt-6 border-t border-border/70 text-center text-xs text-ink-muted">

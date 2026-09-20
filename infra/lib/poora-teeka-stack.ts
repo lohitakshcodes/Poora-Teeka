@@ -358,6 +358,14 @@ export class PooraTeekaStack extends cdk.Stack {
     });
 
     httpApi.addRoutes({
+      path: '/patients/status/{token}',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('PatientStatusIntegration', patientsFn, {
+        timeout: cdk.Duration.seconds(29),
+      }),
+    });
+
+    httpApi.addRoutes({
       path: '/courses',
       methods: [apigwv2.HttpMethod.POST],
       integration: new HttpLambdaIntegration('CoursesIntegration', coursesFn, {

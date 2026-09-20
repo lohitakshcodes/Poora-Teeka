@@ -54,6 +54,61 @@ export function handleMockRequest<T>(path: string, options?: RequestInit): T {
     }
   }
 
+  // 0. GET /patients/status/:token
+  if (method === 'GET' && pathname.startsWith('/patients/status')) {
+    return {
+      firstName: 'Ramesh',
+      fullName: 'Ramesh Pawar',
+      language: 'hi',
+      protocolLabel: 'Updated Thai Red Cross (2-site ID)',
+      vaccineId: 'RABIES',
+      dosesGiven: 2,
+      dosesTotal: 4,
+      nextDueDate: addDaysToDateStr(getTodayDateStr(), 2),
+      nextDoseSeq: 3,
+      centre: {
+        id: 'a0000000-0000-0000-0000-000000000001',
+        name: 'Civil Hospital Anti-Rabies Clinic',
+        city: 'Mumbai',
+      },
+      doses: [
+        { id: 'd1', seq: 1, due_date: addDaysToDateStr(getTodayDateStr(), -7), status: 'GIVEN' },
+        { id: 'd2', seq: 2, due_date: addDaysToDateStr(getTodayDateStr(), -4), status: 'GIVEN' },
+        { id: 'd3', seq: 3, due_date: addDaysToDateStr(getTodayDateStr(), 2), status: 'DUE' },
+        { id: 'd4', seq: 4, due_date: addDaysToDateStr(getTodayDateStr(), 21), status: 'SCHEDULED' },
+      ],
+    } as unknown as T;
+  }
+
+  // 0b. GET /fhir/Immunization/:id
+  if (method === 'GET' && pathname.startsWith('/fhir/')) {
+    return {
+      resourceType: 'Immunization',
+      id: pathname.split('/').pop() || 'mock-dose-id',
+      status: 'completed',
+      vaccineCode: {
+        coding: [
+          { system: 'http://snomed.info/sct', code: '333680005', display: 'Rabies vaccination' },
+          { system: 'http://hl7.org/fhir/sid/cvx', code: '18', display: 'Rabies vaccine' },
+        ],
+        text: 'Rabies Post-Exposure Prophylaxis Vaccine',
+      },
+      patient: {
+        reference: 'Patient/mock-patient-id',
+        display: 'Synthetic Patient',
+      },
+      occurrenceDateTime: new Date().toISOString(),
+      primarySource: true,
+      protocolApplied: [
+        {
+          series: 'Updated Thai Red Cross 2-site ID',
+          doseNumberPositiveInt: 1,
+          seriesDosesPositiveInt: 4,
+        },
+      ],
+    } as unknown as T;
+  }
+
   // 1. GET /doses/today?centreId=
   if (method === 'GET' && pathname === '/doses/today') {
     const today = getTodayDateStr();

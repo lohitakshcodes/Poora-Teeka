@@ -33,6 +33,7 @@ interface ReminderJoinedData {
   patient_name: string;
   phone_e164: string;
   patient_language: string;
+  status_token: string | null;
   centre_id: string;
   centre_name: string;
   centre_city: string;
@@ -195,6 +196,7 @@ export const handler = async (event: any): Promise<any> => {
        p.name AS patient_name,
        p.phone_e164,
        p.language AS patient_language,
+       p.status_token,
        ctr.id AS centre_id,
        ctr.name AS centre_name,
        ctr.city AS centre_city
@@ -407,6 +409,31 @@ export const handler = async (event: any): Promise<any> => {
       });
       const audioData = await audioRes.json();
       console.log(`[reminder-worker] Audio follow-up HTTP ${audioRes.status}:`, JSON.stringify(audioData));
+
+      // 3. Send separate follow-up message with the live patient status portal link
+      if (row.status_token) {
+        const portalBaseUrl = process.env.APP_URL || 'https://main.d18080fgy20g6l.amplifyapp.com';
+        const portalUrl = `${portalBaseUrl.replace(/\/$/, '')}/s/${row.status_token}`;
+        const portalRes = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: recipient,
+            type: 'text',
+            text: {
+              preview_url: true,
+              body: `🔗 *View your live digital vaccination card & clinic directions:*\n${portalUrl}\n\n*अपना डिजिटल टीका कार्ड और क्लिनिक का रास्ता देखें:*\n${portalUrl}`,
+            },
+          }),
+        });
+        const portalData = await portalRes.json();
+        console.log(`[reminder-worker] Portal link follow-up HTTP ${portalRes.status}:`, JSON.stringify(portalData));
+      }
     } catch (followUpErr: any) {
       console.warn('[reminder-worker] Follow-up audio/text message error:', followUpErr.message);
     }

@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { query, withTransaction } from '../db';
+import { getCorsHeaders } from '../cors';
 
 interface CreatePatientInput {
   name: string;
@@ -14,12 +15,22 @@ const PHONE_REGEX = /^\+[1-9][0-9]{7,14}$/;
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
-  try {
-    const httpMethod =
-      event.requestContext?.http?.method?.toUpperCase() ||
-      (event as any).httpMethod?.toUpperCase() ||
-      'POST';
+  const corsHeaders = getCorsHeaders(event);
 
+  const httpMethod =
+    event.requestContext?.http?.method?.toUpperCase() ||
+    (event as any).httpMethod?.toUpperCase() ||
+    'POST';
+
+  if (httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
+  try {
     // ──────────────────────────────────────────────────────────────────────────
     // 1. GET /patients/status/{token} - Public Patient Portal
     // ──────────────────────────────────────────────────────────────────────────
@@ -157,7 +168,7 @@ export const handler = async (
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Patient name is required' }),
       };
     }
@@ -165,7 +176,7 @@ export const handler = async (
     if (!phone_e164 || !PHONE_REGEX.test(phone_e164)) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({
           error: 'phone_e164 must be a valid E.164 number (e.g. +919876543210)',
         }),
@@ -175,7 +186,7 @@ export const handler = async (
     if (guardian_phone && !PHONE_REGEX.test(guardian_phone)) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({
           error: 'guardian_phone must be a valid E.164 number (e.g. +919876543210)',
         }),
@@ -185,7 +196,7 @@ export const handler = async (
     if (!['hi', 'mr', 'en'].includes(language)) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: "language must be one of 'hi', 'mr', 'en'" }),
       };
     }
@@ -193,7 +204,7 @@ export const handler = async (
     if (!centre_id) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'centre_id is required' }),
       };
     }
@@ -210,7 +221,7 @@ export const handler = async (
       if (existing.rows.length > 0) {
         return {
           statusCode: 200,
-          headers: { 'Content-Type': 'application/json', 'X-Cache': 'IDEMPOTENT' },
+          headers: { ...corsHeaders, 'X-Cache': 'IDEMPOTENT' },
           body: JSON.stringify(existing.rows[0].response),
         };
       }
@@ -240,14 +251,14 @@ export const handler = async (
 
     return {
       statusCode: 201,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify(patientRow),
     };
   } catch (err: any) {
     console.error('Error in /patients handler:', err);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify({ error: err.message || 'Internal Server Error' }),
     };
   }

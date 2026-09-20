@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { query, withTransaction } from '../db';
+import { getCorsHeaders } from '../cors';
 
 interface OpenVialInput {
   lotId: string;
@@ -10,11 +11,26 @@ interface OpenVialInput {
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
+  const corsHeaders = getCorsHeaders(event);
+
+  const httpMethod =
+    event.requestContext?.http?.method?.toUpperCase() ||
+    (event as any).httpMethod?.toUpperCase() ||
+    'POST';
+
+  if (httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
   try {
     if (!event.body) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Request body is required' }),
       };
     }
@@ -29,7 +45,7 @@ export const handler = async (
     if (!lotId) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'lotId is required' }),
       };
     }
@@ -46,7 +62,7 @@ export const handler = async (
       if (existing.rows.length > 0) {
         return {
           statusCode: 200,
-          headers: { 'Content-Type': 'application/json', 'X-Cache': 'IDEMPOTENT' },
+          headers: { ...corsHeaders, 'X-Cache': 'IDEMPOTENT' },
           body: JSON.stringify(existing.rows[0].response),
         };
       }
@@ -119,7 +135,7 @@ export const handler = async (
 
     return {
       statusCode: 201,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify(newVial),
     };
   } catch (err: any) {
@@ -127,7 +143,7 @@ export const handler = async (
     const statusCode = err.statusCode || 500;
     return {
       statusCode,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify({ error: err.message || 'Internal Server Error' }),
     };
   }

@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { query, withTransaction } from '../db';
+import { getCorsHeaders } from '../cors';
 
 interface DoseGivenInput {
   version: number;
@@ -8,12 +9,27 @@ interface DoseGivenInput {
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
+  const corsHeaders = getCorsHeaders(event);
+
+  const httpMethod =
+    event.requestContext?.http?.method?.toUpperCase() ||
+    (event as any).httpMethod?.toUpperCase() ||
+    'POST';
+
+  if (httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
   try {
     const doseId = event.pathParameters?.id;
     if (!doseId) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Dose ID is required in path (/doses/{id}/given)' }),
       };
     }
@@ -25,7 +41,7 @@ export const handler = async (
     if (!idempotencyKey) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Idempotency-Key header is required for this operation' }),
       };
     }
@@ -38,7 +54,7 @@ export const handler = async (
     if (existing.rows.length > 0) {
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'X-Cache': 'IDEMPOTENT' },
+        headers: { ...corsHeaders, 'X-Cache': 'IDEMPOTENT' },
         body: JSON.stringify(existing.rows[0].response),
       };
     }
@@ -46,7 +62,7 @@ export const handler = async (
     if (!event.body) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Request body with required version field is required' }),
       };
     }
@@ -59,7 +75,7 @@ export const handler = async (
     if (typeof body.version !== 'number') {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Field "version" (integer) is required for optimistic locking' }),
       };
     }
@@ -225,7 +241,7 @@ export const handler = async (
 
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify(result),
     };
   } catch (err: any) {
@@ -233,7 +249,7 @@ export const handler = async (
     const statusCode = err.statusCode || 500;
     return {
       statusCode,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify({ error: err.message || 'Internal Server Error' }),
     };
   }

@@ -1,16 +1,32 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { query } from '../db';
+import { getCorsHeaders } from '../cors';
 
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
+  const corsHeaders = getCorsHeaders(event);
+
+  const httpMethod =
+    event.requestContext?.http?.method?.toUpperCase() ||
+    (event as any).httpMethod?.toUpperCase() ||
+    'GET';
+
+  if (httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
   try {
     const centreId = event.queryStringParameters?.centreId;
 
     if (!centreId) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Missing required query parameter: centreId' }),
       };
     }
@@ -55,7 +71,7 @@ export const handler = async (
 
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         body: JSON.stringify({
           centre_id: centreId,
           count: result.rows.length,
@@ -78,6 +94,8 @@ export const handler = async (
          d.status,
          d.given_at,
          d.slot_start,
+         d.escalation_level,
+         d.dropout_risk,
          d.version,
          c.protocol_id,
          to_char(c.day0, 'YYYY-MM-DD') AS day0,
@@ -100,7 +118,7 @@ export const handler = async (
 
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify({
         centre_id: centreId,
         date: targetDate || todayIST,
@@ -112,7 +130,7 @@ export const handler = async (
     console.error('Error in GET /doses:', err);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders,
       body: JSON.stringify({ error: err.message || 'Internal Server Error' }),
     };
   }

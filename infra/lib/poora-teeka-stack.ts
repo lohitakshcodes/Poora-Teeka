@@ -347,12 +347,21 @@ export class PooraTeekaStack extends cdk.Stack {
       apiName: 'poora-teeka-http-api',
       description: 'Poora Teeka HTTP API Gateway',
       defaultIntegration: new HttpLambdaIntegration('HelloDefaultIntegration', helloFn),
+      corsPreflight: {
+        allowOrigins: ['https://main.d26dxmzrzyc9st.amplifyapp.com', 'http://localhost:3000'],
+        allowMethods: [
+          apigwv2.CorsHttpMethod.GET,
+          apigwv2.CorsHttpMethod.POST,
+          apigwv2.CorsHttpMethod.OPTIONS,
+        ],
+        allowHeaders: ['Content-Type', 'Idempotency-Key'],
+      },
     });
 
     // Explicit routes
     httpApi.addRoutes({
       path: '/patients',
-      methods: [apigwv2.HttpMethod.POST],
+      methods: [apigwv2.HttpMethod.POST, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('PatientsIntegration', patientsFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -360,7 +369,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/patients/status/{token}',
-      methods: [apigwv2.HttpMethod.GET],
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('PatientStatusIntegration', patientsFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -368,7 +377,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/courses',
-      methods: [apigwv2.HttpMethod.POST],
+      methods: [apigwv2.HttpMethod.POST, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('CoursesIntegration', coursesFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -376,7 +385,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/doses/today',
-      methods: [apigwv2.HttpMethod.GET],
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('DosesIntegration', dosesFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -384,7 +393,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/doses/missed',
-      methods: [apigwv2.HttpMethod.GET],
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('DosesMissedIntegration', dosesFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -392,7 +401,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/vials/open',
-      methods: [apigwv2.HttpMethod.POST],
+      methods: [apigwv2.HttpMethod.POST, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('VialsIntegration', vialsFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -400,7 +409,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/doses/{id}/given',
-      methods: [apigwv2.HttpMethod.POST],
+      methods: [apigwv2.HttpMethod.POST, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('DoseGivenIntegration', doseGivenFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -423,7 +432,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/plan/tomorrow',
-      methods: [apigwv2.HttpMethod.GET],
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('PlanTomorrowIntegration', planFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -446,7 +455,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/metrics',
-      methods: [apigwv2.HttpMethod.GET],
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('MetricsIntegration', metricsFn, {
         timeout: cdk.Duration.seconds(29),
       }),
@@ -469,7 +478,7 @@ export class PooraTeekaStack extends cdk.Stack {
 
     httpApi.addRoutes({
       path: '/fhir/Immunization/{doseId}',
-      methods: [apigwv2.HttpMethod.GET],
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.OPTIONS],
       integration: new HttpLambdaIntegration('FhirImmunizationIntegration', fhirFn, {
         timeout: cdk.Duration.seconds(29),
       }),

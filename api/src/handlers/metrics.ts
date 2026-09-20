@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { query } from '../db';
+import { getCorsHeaders } from '../cors';
 
 interface FunnelRow {
   seq: number;
@@ -21,12 +22,27 @@ interface OpenVialRow {
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
+  const corsHeaders = getCorsHeaders(event);
+
+  const httpMethod =
+    event.requestContext?.http?.method?.toUpperCase() ||
+    (event as any).httpMethod?.toUpperCase() ||
+    'GET';
+
+  if (httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
   try {
     const centreId = event.queryStringParameters?.centreId;
     if (!centreId) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Missing required query parameter: centreId' }),
       };
     }
@@ -39,7 +55,7 @@ export const handler = async (
     if (centreRes.rows.length === 0) {
       return {
         statusCode: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: corsHeaders,
         body: JSON.stringify({ error: `Centre not found: ${centreId}` }),
       };
     }
@@ -173,11 +189,7 @@ export const handler = async (
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      },
+      headers: corsHeaders,
       body: JSON.stringify({
         centre: {
           id: centre.id,
@@ -214,7 +226,7 @@ export const handler = async (
     console.error('[metrics] Error computing metrics:', err);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: corsHeaders,
       body: JSON.stringify({ error: err.message || 'Internal Server Error' }),
     };
   }

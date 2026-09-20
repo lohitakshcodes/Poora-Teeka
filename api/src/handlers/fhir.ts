@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { query } from '../db';
+import { getCorsHeaders } from '../cors';
 
 /**
  * FHIR R4 Immunization Resource Handler
@@ -13,16 +14,31 @@ import { query } from '../db';
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
+  const corsHeaders = {
+    ...getCorsHeaders(event),
+    'Content-Type': 'application/fhir+json; charset=utf-8',
+  };
+
+  const httpMethod =
+    event.requestContext?.http?.method?.toUpperCase() ||
+    (event as any).httpMethod?.toUpperCase() ||
+    'GET';
+
+  if (httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
   try {
     const doseId = event.pathParameters?.doseId;
 
     if (!doseId) {
       return {
         statusCode: 400,
-        headers: {
-          'Content-Type': 'application/fhir+json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: corsHeaders,
         body: JSON.stringify({
           resourceType: 'OperationOutcome',
           issue: [
@@ -83,10 +99,7 @@ export const handler = async (
     if (result.rows.length === 0) {
       return {
         statusCode: 404,
-        headers: {
-          'Content-Type': 'application/fhir+json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: corsHeaders,
         body: JSON.stringify({
           resourceType: 'OperationOutcome',
           issue: [
@@ -255,20 +268,14 @@ export const handler = async (
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/fhir+json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: corsHeaders,
       body: JSON.stringify(fhirResource, null, 2),
     };
   } catch (err: any) {
     console.error('Error in GET /fhir/Immunization/{doseId}:', err);
     return {
       statusCode: 500,
-      headers: {
-        'Content-Type': 'application/fhir+json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: corsHeaders,
       body: JSON.stringify({
         resourceType: 'OperationOutcome',
         issue: [

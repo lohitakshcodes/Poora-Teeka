@@ -1,26 +1,64 @@
 @import "tailwindcss";
+@config "../tailwind.config.ts";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base neutrals — most of the UI lives here */
+  --ink: #16211b;           /* near-black, slightly warm, for primary text */
+  --ink-muted: #5b6b62;     /* secondary text */
+  --surface: #ffffff;
+  --surface-sunken: #f4f7f5; /* card backgrounds, subtle recess */
+  --border: #dfe6e1;
+
+  /* One calm brand color — trust, clinical, not sterile-cold */
+  --brand: #0f6b5c;         /* deep teal-green */
+  --brand-soft: #e3f1ec;    /* tint for backgrounds/badges */
+
+  /* Status colors — used ONLY for their meaning, never decoratively */
+  --status-scheduled: #8a94a6;   /* gray */
+  --status-due: #1d6fd6;         /* blue */
+  --status-given: #1a8a5e;       /* green */
+  --status-missed: #c23b3b;      /* red — reserved, see below */
+  --status-recovered: #c98a1f;   /* amber */
+
+  /* The one urgent red in the whole app, earned by real stakes */
+  --urgent: #d32f2f;
+  --urgent-bg: #fdecec;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@theme {
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-inkMuted: var(--ink-muted);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surfaceSunken: var(--surface-sunken);
+  --color-border: var(--border);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brandSoft: var(--brand-soft);
+
+  --color-status-scheduled: var(--status-scheduled);
+  --color-statusScheduled: var(--status-scheduled);
+  --color-status-due: var(--status-due);
+  --color-statusDue: var(--status-due);
+  --color-status-given: var(--status-given);
+  --color-statusGiven: var(--status-given);
+  --color-status-missed: var(--status-missed);
+  --color-statusMissed: var(--status-missed);
+  --color-status-recovered: var(--status-recovered);
+  --color-statusRecovered: var(--status-recovered);
+
+  --color-urgent: var(--urgent);
+  --color-urgent-bg: var(--urgent-bg);
+  --color-urgentBg: var(--urgent-bg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--surface-sunken);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }

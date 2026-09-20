@@ -18,6 +18,7 @@ export interface Dose {
   patient: PatientRef;
   slotStart: string | null; // ISO datetime or null
   route?: 'ID' | 'IM';
+  escalation_level?: 'critical' | 'priority' | 'routine' | string;
 }
 
 export interface TodayDosesResponse {
